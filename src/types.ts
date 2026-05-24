@@ -9,6 +9,7 @@ export interface Exercise {
   cue: string
   defaultReps: number
   defaultSets: number
+  weightOptional?: boolean
 }
 
 export interface WorkoutExercise {

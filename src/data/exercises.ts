@@ -255,6 +255,7 @@ export const exercises: Exercise[] = [
     cue: 'Hands behind head, hinge at hips with soft knees, feel the pull',
     defaultReps: 12,
     defaultSets: 3,
+    weightOptional: true,
   },
 
   // Quads
@@ -281,6 +282,7 @@ export const exercises: Exercise[] = [
     cue: 'Hold wall sit position, slowly raise one leg parallel to floor',
     defaultReps: 10,
     defaultSets: 3,
+    weightOptional: true,
   },
   {
     id: 'qu4',
@@ -289,6 +291,7 @@ export const exercises: Exercise[] = [
     cue: 'Squat down, stand and kick one leg forward at the top',
     defaultReps: 12,
     defaultSets: 3,
+    weightOptional: true,
   },
   {
     id: 'qu5',
@@ -297,6 +300,7 @@ export const exercises: Exercise[] = [
     cue: 'Step onto a surface, drive opposite knee up, lower with control',
     defaultReps: 10,
     defaultSets: 3,
+    weightOptional: true,
   },
 
   // Abductors
@@ -323,6 +327,7 @@ export const exercises: Exercise[] = [
     cue: 'Side-lying with knees bent, open top knee like a clamshell',
     defaultReps: 20,
     defaultSets: 3,
+    weightOptional: true,
   },
   {
     id: 'ab4',
@@ -339,6 +344,7 @@ export const exercises: Exercise[] = [
     cue: 'Step back into curtsy lunge, then lift that leg out to the side',
     defaultReps: 12,
     defaultSets: 3,
+    weightOptional: true,
   },
 
   // Adductors
@@ -365,6 +371,7 @@ export const exercises: Exercise[] = [
     cue: 'Wide stance, toes out, pulse at the bottom for 2 counts',
     defaultReps: 20,
     defaultSets: 3,
+    weightOptional: true,
   },
   {
     id: 'ad4',
@@ -391,6 +398,7 @@ export const exercises: Exercise[] = [
     cue: 'Rise onto toes as high as possible, hold 1 second, lower slowly',
     defaultReps: 20,
     defaultSets: 3,
+    weightOptional: true,
   },
   {
     id: 'ca2',
@@ -399,6 +407,7 @@ export const exercises: Exercise[] = [
     cue: 'Balance on one foot, rise fully, feel the burn on the way down',
     defaultReps: 15,
     defaultSets: 3,
+    weightOptional: true,
   },
   {
     id: 'ca3',
@@ -407,6 +416,7 @@ export const exercises: Exercise[] = [
     cue: 'Seated, press the ball of your foot into the floor and rise',
     defaultReps: 20,
     defaultSets: 3,
+    weightOptional: true,
   },
   {
     id: 'ca4',
@@ -415,6 +425,7 @@ export const exercises: Exercise[] = [
     cue: 'Rise to toes and hold at the top for 3 seconds before lowering',
     defaultReps: 12,
     defaultSets: 3,
+    weightOptional: true,
   },
   {
     id: 'ca5',
@@ -423,6 +434,7 @@ export const exercises: Exercise[] = [
     cue: 'Stand flat, lift toes off the floor — works the shin and ankle',
     defaultReps: 20,
     defaultSets: 3,
+    weightOptional: true,
   },
 ]
 
