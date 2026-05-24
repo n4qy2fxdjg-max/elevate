@@ -298,8 +298,9 @@ export default function Builder() {
               style={{
                 position: 'fixed',
                 bottom: 0,
-                left: '50%',
-                transform: 'translateX(-50%)',
+                left: 0,
+                right: 0,
+                margin: '0 auto',
                 width: '100%',
                 maxWidth: 430,
                 background: '#FAF7F2',
