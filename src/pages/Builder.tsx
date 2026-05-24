@@ -13,7 +13,11 @@ interface BuilderItem {
   reps: number
 }
 
-const CATS: Array<MuscleCategory | 'all'> = ['all', 'biceps', 'shoulders', 'triceps', 'back', 'chest', 'core']
+const CATS: Array<MuscleCategory | 'all'> = [
+  'all',
+  'biceps', 'shoulders', 'triceps', 'back', 'chest', 'core',
+  'glutes', 'hamstrings', 'quads', 'abductors', 'adductors', 'calves',
+]
 
 export default function Builder() {
   const navigate = useNavigate()

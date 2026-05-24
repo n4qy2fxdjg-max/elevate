@@ -4,7 +4,11 @@ import { exercises, categoryColors } from '../data/exercises'
 import ExerciseCard from '../components/ExerciseCard'
 import type { Exercise, MuscleCategory } from '../types'
 
-const CATEGORIES: Array<MuscleCategory | 'all'> = ['all', 'biceps', 'shoulders', 'triceps', 'back', 'chest', 'core']
+const CATEGORIES: Array<MuscleCategory | 'all'> = [
+  'all',
+  'biceps', 'shoulders', 'triceps', 'back', 'chest', 'core',
+  'glutes', 'hamstrings', 'quads', 'abductors', 'adductors', 'calves',
+]
 
 export default function Library() {
   const [active, setActive] = useState<MuscleCategory | 'all'>('all')

@@ -1,4 +1,6 @@
-export type MuscleCategory = 'biceps' | 'triceps' | 'shoulders' | 'back' | 'chest' | 'core'
+export type MuscleCategory =
+  | 'biceps' | 'triceps' | 'shoulders' | 'back' | 'chest' | 'core'
+  | 'glutes' | 'hamstrings' | 'quads' | 'abductors' | 'adductors' | 'calves'
 
 export interface Exercise {
   id: string
