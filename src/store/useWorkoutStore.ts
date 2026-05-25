@@ -30,6 +30,15 @@ export const useWorkoutStore = create<WorkoutStore>()(
       setPrefs: (prefs) => set((s) => ({ prefs: { ...s.prefs, ...prefs } })),
       setActivePlanId: (id) => set({ activePlanId: id }),
     }),
-    { name: 'elevate-v1' }
+    {
+      name: 'elevate-v1',
+      version: 1,
+      migrate: (persisted: any, version: number) => {
+        if (version < 1 && persisted?.prefs?.name === 'Love') {
+          return { ...persisted, prefs: { ...persisted.prefs, name: 'Zain' } }
+        }
+        return persisted
+      },
+    }
   )
 )
