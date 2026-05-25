@@ -112,7 +112,7 @@ export default function Library() {
                 position: 'fixed',
                 inset: 0,
                 background: 'rgba(58,46,40,0.4)',
-                zIndex: 200,
+                zIndex: 1000,
               }}
             />
             <motion.div
@@ -133,7 +133,7 @@ export default function Library() {
                 borderRadius: '28px 28px 0 0',
                 padding: '28px 24px',
                 paddingBottom: 'max(32px, calc(env(safe-area-inset-bottom) + 16px))',
-                zIndex: 201,
+                zIndex: 1001,
               }}
             >
               <div

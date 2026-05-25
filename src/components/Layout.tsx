@@ -38,8 +38,7 @@ const navItems = [
     label: 'Build',
     icon: (active: boolean) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="9" stroke={active ? '#3A2E28' : '#C4A882'} strokeWidth={active ? 2 : 1.5} fill={active ? '#F2C4B0' : 'none'} />
-        <path d="M12 8v4l3 3" stroke={active ? '#3A2E28' : '#C4A882'} strokeWidth={active ? 2 : 1.5} strokeLinecap="round" />
+        <path d="M12 5v14M5 12h14" stroke={active ? '#3A2E28' : '#C4A882'} strokeWidth={active ? 2.2 : 1.5} strokeLinecap="round" />
       </svg>
     ),
   },

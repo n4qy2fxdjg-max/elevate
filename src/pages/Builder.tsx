@@ -291,7 +291,7 @@ export default function Builder() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowPicker(false)}
-              style={{ position: 'fixed', inset: 0, background: 'rgba(58,46,40,0.4)', zIndex: 200 }}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(58,46,40,0.4)', zIndex: 1000 }}
             />
             <motion.div
               key="picker"
@@ -311,7 +311,7 @@ export default function Builder() {
                 borderRadius: '28px 28px 0 0',
                 padding: '20px 20px 0',
                 paddingBottom: 'max(24px, env(safe-area-inset-bottom))',
-                zIndex: 201,
+                zIndex: 1001,
                 maxHeight: '80svh',
                 display: 'flex',
                 flexDirection: 'column',
