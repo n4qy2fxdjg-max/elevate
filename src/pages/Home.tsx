@@ -99,10 +99,10 @@ export default function Home() {
               ) : (
                 <span
                   onClick={() => { setEditingName(true); setNameInput(prefs.name) }}
-                  style={{ cursor: 'text' }}
+                  style={{ cursor: 'text', borderBottom: '2px solid #F2C4B0', paddingBottom: 1 }}
                 >
                   <em style={{ color: '#C4A882', fontWeight: 300 }}>My love, </em>
-                  <span style={{ borderBottom: '2px solid #F2C4B0', paddingBottom: 1 }}>{prefs.name}</span>
+                  {prefs.name}
                 </span>
               )}
             </h1>
