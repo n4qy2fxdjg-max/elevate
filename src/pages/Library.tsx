@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { exercises, categoryColors } from '../data/exercises'
+import { BODY_GROUPS, GROUP_CATS, type BodyGroup } from '../data/categories'
 import ExerciseCard from '../components/ExerciseCard'
 import { useWorkoutStore } from '../store/useWorkoutStore'
 import type { Exercise, MuscleCategory } from '../types'
@@ -73,16 +74,18 @@ function OverloadChart({ data }: { data: ChartPoint[] }) {
   )
 }
 
-const CATEGORIES: Array<MuscleCategory | 'all'> = [
-  'all',
-  'biceps', 'shoulders', 'triceps', 'back', 'chest', 'core',
-  'glutes', 'hamstrings', 'quads', 'abductors', 'adductors', 'calves',
-]
-
 export default function Library() {
   const { logs } = useWorkoutStore()
+  const [bodyGroup, setBodyGroup] = useState<BodyGroup>('all')
   const [active, setActive] = useState<MuscleCategory | 'all'>('all')
   const [selected, setSelected] = useState<Exercise | null>(null)
+
+  function selectGroup(g: BodyGroup) {
+    setBodyGroup(g)
+    setActive('all')
+  }
+
+  const groupCats = GROUP_CATS[bodyGroup]
 
   function getOverloadData(exerciseId: string): ChartPoint[] {
     return logs
@@ -94,7 +97,11 @@ export default function Library() {
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
   }
 
-  const filtered = active === 'all' ? exercises : exercises.filter((e) => e.category === active)
+  const filtered = exercises.filter((e) => {
+    if (!groupCats.includes(e.category)) return false
+    if (active !== 'all' && e.category !== active) return false
+    return true
+  })
 
   return (
     <>
@@ -118,7 +125,33 @@ export default function Library() {
           {exercises.length} ankle-weight moves
         </p>
 
-        {/* Category filter */}
+        {/* Row 1 — body group */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+          {BODY_GROUPS.map((g) => (
+            <motion.button
+              key={g}
+              whileTap={{ scale: 0.94 }}
+              onClick={() => selectGroup(g)}
+              style={{
+                flex: 1,
+                background: bodyGroup === g ? '#3A2E28' : '#fff',
+                color: bodyGroup === g ? '#FAF7F2' : '#7A6458',
+                border: '1px solid ' + (bodyGroup === g ? 'transparent' : 'rgba(196,168,130,0.25)'),
+                borderRadius: 12,
+                padding: '9px 0',
+                fontSize: 13,
+                fontWeight: bodyGroup === g ? 600 : 400,
+                cursor: 'pointer',
+                textTransform: 'capitalize',
+                fontFamily: '"DM Sans", system-ui, sans-serif',
+              }}
+            >
+              {g.charAt(0).toUpperCase() + g.slice(1)}
+            </motion.button>
+          ))}
+        </div>
+
+        {/* Row 2 — muscle chips */}
         <div
           style={{
             display: 'flex',
@@ -133,18 +166,18 @@ export default function Library() {
           }}
           className="scrollbar-hide"
         >
-          {CATEGORIES.map((cat) => {
+          {groupCats.map((cat) => {
             const isActive = active === cat
-            const colors = cat !== 'all' ? categoryColors[cat] : null
+            const colors = categoryColors[cat]
             return (
               <motion.button
                 key={cat}
                 whileTap={{ scale: 0.94 }}
-                onClick={() => setActive(cat)}
+                onClick={() => setActive(isActive ? 'all' : cat)}
                 style={{
                   flexShrink: 0,
-                  background: isActive ? (colors?.bg ?? '#3A2E28') : '#fff',
-                  color: isActive ? (colors?.text ?? '#FAF7F2') : '#7A6458',
+                  background: isActive ? colors.bg : '#fff',
+                  color: isActive ? colors.text : '#7A6458',
                   border: '1px solid ' + (isActive ? 'transparent' : 'rgba(196,168,130,0.25)'),
                   borderRadius: 12,
                   padding: '8px 16px',

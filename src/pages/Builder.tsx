@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence, Reorder } from 'framer-motion'
 import { nanoid } from 'nanoid'
 import { exercises as allExercises, categoryColors } from '../data/exercises'
+import { BODY_GROUPS, GROUP_CATS, type BodyGroup } from '../data/categories'
 import { useWorkoutStore } from '../store/useWorkoutStore'
 import type { MuscleCategory } from '../types'
 
@@ -15,22 +16,29 @@ interface BuilderItem {
   weightKg: number
 }
 
-const CATS: Array<MuscleCategory | 'all'> = [
-  'all',
-  'biceps', 'shoulders', 'triceps', 'back', 'chest', 'core',
-  'glutes', 'hamstrings', 'quads', 'abductors', 'adductors', 'calves',
-]
 
 export default function Builder() {
   const navigate = useNavigate()
   const { plans, addPlan, prefs } = useWorkoutStore()
   const [name, setName] = useState('')
   const [items, setItems] = useState<BuilderItem[]>([])
+  const [bodyGroup, setBodyGroup] = useState<BodyGroup>('all')
   const [filter, setFilter] = useState<MuscleCategory | 'all'>('all')
+
+  function selectGroup(g: BodyGroup) {
+    setBodyGroup(g)
+    setFilter('all')
+  }
+
+  const groupCats = GROUP_CATS[bodyGroup]
   const [showPicker, setShowPicker] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  const filtered = filter === 'all' ? allExercises : allExercises.filter((e) => e.category === filter)
+  const filtered = allExercises.filter((e) => {
+    if (!groupCats.includes(e.category)) return false
+    if (filter !== 'all' && e.category !== filter) return false
+    return true
+  })
 
   function addExercise(exId: string) {
     const ex = allExercises.find((e) => e.id === exId)
@@ -355,15 +363,40 @@ export default function Builder() {
                 Add Exercise
               </h3>
 
-              {/* Filter tabs */}
+              {/* Row 1 — body group */}
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0, marginBottom: 10 }}>
+                {BODY_GROUPS.map((g) => (
+                  <button
+                    key={g}
+                    onClick={() => selectGroup(g)}
+                    style={{
+                      flex: 1,
+                      background: bodyGroup === g ? '#3A2E28' : '#fff',
+                      color: bodyGroup === g ? '#FAF7F2' : '#7A6458',
+                      border: '1px solid rgba(196,168,130,0.2)',
+                      borderRadius: 10,
+                      padding: '7px 0',
+                      fontSize: 12,
+                      fontWeight: bodyGroup === g ? 600 : 400,
+                      cursor: 'pointer',
+                      textTransform: 'capitalize',
+                      fontFamily: '"DM Sans", system-ui, sans-serif',
+                    }}
+                  >
+                    {g.charAt(0).toUpperCase() + g.slice(1)}
+                  </button>
+                ))}
+              </div>
+
+              {/* Row 2 — muscle chips */}
               <div
                 style={{ display: 'flex', gap: 6, overflowX: 'auto', flexShrink: 0, paddingTop: 2, paddingBottom: 12, marginBottom: 4, scrollbarWidth: 'none' }}
                 className="scrollbar-hide"
               >
-                {CATS.map((cat) => (
+                {groupCats.map((cat) => (
                   <button
                     key={cat}
-                    onClick={() => setFilter(cat)}
+                    onClick={() => setFilter(filter === cat ? 'all' : cat)}
                     style={{
                       flexShrink: 0,
                       background: filter === cat ? '#3A2E28' : '#fff',
@@ -372,7 +405,7 @@ export default function Builder() {
                       borderRadius: 10,
                       padding: '6px 14px',
                       fontSize: 12,
-                      fontWeight: 500,
+                      fontWeight: filter === cat ? 600 : 400,
                       cursor: 'pointer',
                       textTransform: 'capitalize',
                       fontFamily: '"DM Sans", system-ui, sans-serif',
