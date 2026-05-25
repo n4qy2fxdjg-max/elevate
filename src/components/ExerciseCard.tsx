@@ -32,11 +32,8 @@ export default function ExerciseCard({ exercise, onAdd, compact, onTap }: Exerci
           <div style={{ fontFamily: '"DM Sans"', fontWeight: 500, fontSize: 15, color: '#3A2E28' }}>
             {exercise.name}
           </div>
-          <div style={{ fontSize: 12, color: '#7A6458', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ fontSize: 12, color: '#7A6458', marginTop: 2 }}>
             {exercise.defaultSets} sets · {exercise.defaultReps} reps
-            {exercise.weightOptional && (
-              <span style={{ color: '#C4A882', fontSize: 11 }}>· wt. optional</span>
-            )}
           </div>
         </div>
         <div
@@ -69,7 +66,7 @@ export default function ExerciseCard({ exercise, onAdd, compact, onTap }: Exerci
         border: '1px solid rgba(196,168,130,0.15)',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+      <div style={{ marginBottom: 10 }}>
         <div
           style={{
             display: 'inline-flex',
@@ -84,21 +81,6 @@ export default function ExerciseCard({ exercise, onAdd, compact, onTap }: Exerci
         >
           {exercise.category}
         </div>
-        {exercise.weightOptional && (
-          <div
-            style={{
-              display: 'inline-flex',
-              background: '#F0EAE0',
-              color: '#C4A882',
-              borderRadius: 10,
-              padding: '4px 10px',
-              fontSize: 11,
-              fontWeight: 500,
-            }}
-          >
-            wt. optional
-          </div>
-        )}
       </div>
       <div
         style={{
