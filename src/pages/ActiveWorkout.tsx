@@ -13,7 +13,7 @@ type Phase = 'exercise' | 'rest' | 'done'
 
 export default function ActiveWorkout() {
   const navigate = useNavigate()
-  const { plans, activePlanId, addLog, setActivePlanId } = useWorkoutStore()
+  const { plans, activePlanId, addLog, setActivePlanId, prefs } = useWorkoutStore()
   const plan = plans.find((p) => p.id === activePlanId) ?? featuredPlans.find((p) => p.id === activePlanId)
 
   const startTime = useRef(Date.now())
@@ -23,6 +23,22 @@ export default function ActiveWorkout() {
   const [setIdx, setSetIdx] = useState(0)
   const [phase, setPhase] = useState<Phase>('exercise')
   const [restRemaining, setRestRemaining] = useState(REST_SECONDS)
+  const [exWeights, setExWeights] = useState<Record<string, number>>(() =>
+    Object.fromEntries(
+      (plan?.exercises ?? []).map((e) => [e.exerciseId, e.weightKg ?? prefs.weightKg])
+    )
+  )
+
+  function adjustExWeight(exerciseId: string, delta: number) {
+    setExWeights((prev) => ({
+      ...prev,
+      [exerciseId]: Math.max(0, parseFloat(((prev[exerciseId] ?? prefs.weightKg) + delta).toFixed(2))),
+    }))
+  }
+
+  function fmtKg(kg: number) {
+    return parseFloat(kg.toFixed(2)).toString()
+  }
 
   const currentItem = plan?.exercises[exIdx]
   const currentEx = currentItem ? allExercises.find((e) => e.id === currentItem.exerciseId) : null
@@ -45,11 +61,15 @@ export default function ActiveWorkout() {
         date: new Date().toISOString(),
         durationSec: Math.round((Date.now() - startTime.current) / 1000),
         completed,
+        exercises: plan?.exercises.map((e) => ({
+          exerciseId: e.exerciseId,
+          weightKg: exWeights[e.exerciseId] ?? prefs.weightKg,
+        })),
       })
       setActivePlanId(null)
       navigate('/')
     },
-    [activePlanId, addLog, navigate, plan, setActivePlanId]
+    [activePlanId, addLog, exWeights, navigate, plan, prefs.weightKg, setActivePlanId]
   )
 
   useEffect(() => {
@@ -248,7 +268,7 @@ export default function ActiveWorkout() {
               >
                 {currentEx.name}
               </h1>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
                 <div style={{ textAlign: 'center' }}>
                   <div
                     style={{
@@ -278,6 +298,44 @@ export default function ActiveWorkout() {
                   </div>
                   <div style={{ fontSize: 11, color: '#C4A882', marginTop: 2 }}>set</div>
                 </div>
+              </div>
+
+              {/* Weight control */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  background: 'rgba(255,255,255,0.08)',
+                  borderRadius: 14,
+                  overflow: 'hidden',
+                  marginBottom: 16,
+                }}
+              >
+                <button
+                  onClick={() => adjustExWeight(currentItem!.exerciseId, -0.25)}
+                  style={{ padding: '10px 16px', background: 'none', border: 'none', fontSize: 20, color: '#C4A882', cursor: 'pointer', lineHeight: 1 }}
+                >
+                  −
+                </button>
+                <div style={{ flex: 1, textAlign: 'center' }}>
+                  <span
+                    style={{
+                      fontFamily: '"Cormorant Garamond", Georgia, serif',
+                      fontSize: 24,
+                      fontWeight: 300,
+                      color: '#FAF7F2',
+                    }}
+                  >
+                    {fmtKg(exWeights[currentItem!.exerciseId] ?? prefs.weightKg)}
+                  </span>
+                  <span style={{ fontSize: 11, color: '#C4A882', marginLeft: 4 }}>kg</span>
+                </div>
+                <button
+                  onClick={() => adjustExWeight(currentItem!.exerciseId, 0.25)}
+                  style={{ padding: '10px 16px', background: 'none', border: 'none', fontSize: 20, color: '#C4A882', cursor: 'pointer', lineHeight: 1 }}
+                >
+                  +
+                </button>
               </div>
               <div
                 style={{

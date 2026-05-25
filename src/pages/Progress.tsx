@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useWorkoutStore } from '../store/useWorkoutStore'
 
 function isoToDate(iso: string) {
@@ -27,7 +27,7 @@ function getStreak(logs: { date: string }[]) {
 }
 
 export default function Progress() {
-  const { logs, prefs, setPrefs } = useWorkoutStore()
+  const { logs, prefs, setPrefs, deleteLog } = useWorkoutStore()
   const streak = getStreak(logs)
 
   const heatmap = useMemo(() => {
@@ -282,10 +282,15 @@ export default function Progress() {
           >
             History
           </div>
+          <AnimatePresence>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {logs.slice(0, 10).map((log) => (
-              <div
+              <motion.div
                 key={log.id}
+                layout
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
                 style={{
                   background: '#fff',
                   borderRadius: 16,
@@ -296,7 +301,7 @@ export default function Progress() {
                   border: '1px solid rgba(196,168,130,0.12)',
                 }}
               >
-                <div>
+                <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 15, fontWeight: 500, color: '#3A2E28' }}>{log.planName}</div>
                   <div style={{ fontSize: 12, color: '#C4A882', marginTop: 2 }}>
                     {new Date(log.date).toLocaleDateString('en-US', {
@@ -306,26 +311,49 @@ export default function Progress() {
                     })}
                   </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 13, color: '#7A6458' }}>
-                    {Math.round(log.durationSec / 60)} min
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 13, color: '#7A6458' }}>
+                      {Math.round(log.durationSec / 60)} min
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: log.completed ? '#2A6040' : '#C4A882',
+                        background: log.completed ? '#C8E0C8' : '#F0EAE0',
+                        borderRadius: 6,
+                        padding: '2px 6px',
+                        marginTop: 3,
+                      }}
+                    >
+                      {log.completed ? 'Done' : 'Partial'}
+                    </div>
                   </div>
-                  <div
+                  <motion.button
+                    whileTap={{ scale: 0.88 }}
+                    onClick={() => deleteLog(log.id)}
                     style={{
-                      fontSize: 11,
-                      color: log.completed ? '#2A6040' : '#C4A882',
-                      background: log.completed ? '#C8E0C8' : '#F0EAE0',
-                      borderRadius: 6,
-                      padding: '2px 6px',
-                      marginTop: 3,
+                      width: 30,
+                      height: 30,
+                      background: '#F0EAE0',
+                      border: 'none',
+                      borderRadius: 8,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      fontSize: 16,
+                      color: '#B09080',
+                      flexShrink: 0,
                     }}
                   >
-                    {log.completed ? 'Done' : 'Partial'}
-                  </div>
+                    ×
+                  </motion.button>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
+          </AnimatePresence>
         </div>
       )}
 

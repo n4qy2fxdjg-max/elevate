@@ -10,6 +10,7 @@ interface WorkoutStore {
   addPlan: (plan: WorkoutPlan) => void
   deletePlan: (id: string) => void
   addLog: (log: WorkoutLog) => void
+  deleteLog: (id: string) => void
   setPrefs: (prefs: Partial<UserPrefs>) => void
   setActivePlanId: (id: string | null) => void
 }
@@ -25,6 +26,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
       deletePlan: (id) =>
         set((s) => ({ plans: s.plans.filter((p) => p.id !== id) })),
       addLog: (log) => set((s) => ({ logs: [log, ...s.logs] })),
+      deleteLog: (id) => set((s) => ({ logs: s.logs.filter((l) => l.id !== id) })),
       setPrefs: (prefs) => set((s) => ({ prefs: { ...s.prefs, ...prefs } })),
       setActivePlanId: (id) => set({ activePlanId: id }),
     }),

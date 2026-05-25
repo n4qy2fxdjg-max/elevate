@@ -2,7 +2,75 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { exercises, categoryColors } from '../data/exercises'
 import ExerciseCard from '../components/ExerciseCard'
+import { useWorkoutStore } from '../store/useWorkoutStore'
 import type { Exercise, MuscleCategory } from '../types'
+
+interface ChartPoint { date: string; weightKg: number }
+
+function OverloadChart({ data }: { data: ChartPoint[] }) {
+  if (data.length === 0) return null
+
+  const W = 300, H = 90
+  const padL = 36, padR = 8, padT = 8, padB = 24
+
+  const xs = data.map((d) => new Date(d.date).getTime())
+  const ys = data.map((d) => d.weightKg)
+  const minX = Math.min(...xs), maxX = Math.max(...xs)
+  const minY = Math.max(0, Math.min(...ys) - 0.25)
+  const maxY = Math.max(...ys) + 0.25
+
+  const sx = (x: number) =>
+    xs.length === 1 ? padL + (W - padL - padR) / 2 : padL + ((x - minX) / (maxX - minX)) * (W - padL - padR)
+  const sy = (y: number) =>
+    padT + (1 - (y - minY) / (maxY - minY)) * (H - padT - padB)
+
+  const pts = data.map((d) => ({ x: sx(new Date(d.date).getTime()), y: sy(d.weightKg), w: d.weightKg, date: d.date }))
+  const path = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+
+  // y-axis ticks
+  const ticks = [...new Set([minY + 0.25, (minY + maxY) / 2, maxY - 0.25].map((v) => parseFloat(v.toFixed(2))))]
+
+  return (
+    <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ overflow: 'visible' }}>
+      {/* grid lines */}
+      {ticks.map((t) => (
+        <line key={t} x1={padL} x2={W - padR} y1={sy(t)} y2={sy(t)} stroke="rgba(196,168,130,0.15)" strokeWidth={1} />
+      ))}
+      {/* y labels */}
+      {ticks.map((t) => (
+        <text key={t} x={padL - 4} y={sy(t) + 3.5} fontSize={8} fill="#C4A882" textAnchor="end">
+          {parseFloat(t.toFixed(2))}
+        </text>
+      ))}
+      {/* line */}
+      {pts.length > 1 && (
+        <path d={path} fill="none" stroke="#F2C4B0" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      )}
+      {/* dots + weight labels */}
+      {pts.map((p, i) => (
+        <g key={i}>
+          <circle cx={p.x} cy={p.y} r={3.5} fill="#F2C4B0" />
+          {(i === pts.length - 1 || pts.length <= 4) && (
+            <text x={p.x} y={p.y - 7} fontSize={8} fill="#C4A882" textAnchor="middle">
+              {parseFloat(p.w.toFixed(2))}kg
+            </text>
+          )}
+        </g>
+      ))}
+      {/* x date labels — first and last */}
+      {pts.length > 1 && (
+        <>
+          <text x={pts[0].x} y={H - 4} fontSize={7.5} fill="#C4A882" textAnchor="start">
+            {new Date(pts[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          </text>
+          <text x={pts[pts.length - 1].x} y={H - 4} fontSize={7.5} fill="#C4A882" textAnchor="end">
+            {new Date(pts[pts.length - 1].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          </text>
+        </>
+      )}
+    </svg>
+  )
+}
 
 const CATEGORIES: Array<MuscleCategory | 'all'> = [
   'all',
@@ -11,8 +79,19 @@ const CATEGORIES: Array<MuscleCategory | 'all'> = [
 ]
 
 export default function Library() {
+  const { logs } = useWorkoutStore()
   const [active, setActive] = useState<MuscleCategory | 'all'>('all')
   const [selected, setSelected] = useState<Exercise | null>(null)
+
+  function getOverloadData(exerciseId: string): ChartPoint[] {
+    return logs
+      .filter((l) => l.exercises?.some((e) => e.exerciseId === exerciseId))
+      .map((l) => ({
+        date: l.date,
+        weightKg: l.exercises!.find((e) => e.exerciseId === exerciseId)!.weightKg,
+      }))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  }
 
   const filtered = active === 'all' ? exercises : exercises.filter((e) => e.category === active)
 
@@ -188,7 +267,7 @@ export default function Library() {
                   {selected.cue}
                 </p>
               </div>
-              <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
+              <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
                 {[
                   { label: 'Sets', value: selected.defaultSets },
                   { label: 'Reps', value: selected.defaultReps },
@@ -219,6 +298,34 @@ export default function Library() {
                   </div>
                 ))}
               </div>
+
+              {/* Progressive overload chart */}
+              {(() => {
+                const chartData = getOverloadData(selected.id)
+                if (chartData.length === 0) return null
+                return (
+                  <div
+                    style={{
+                      background: '#fff',
+                      borderRadius: 16,
+                      padding: '14px 16px 10px',
+                      marginBottom: 20,
+                      border: '1px solid rgba(196,168,130,0.15)',
+                    }}
+                  >
+                    <div style={{ fontSize: 11, color: '#C4A882', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
+                      Weight Progress
+                    </div>
+                    <OverloadChart data={chartData} />
+                    {chartData.length === 1 && (
+                      <p style={{ fontSize: 11, color: '#C4A882', margin: '8px 0 0', textAlign: 'center', fontStyle: 'italic' }}>
+                        Complete more sessions to see your progression.
+                      </p>
+                    )}
+                  </div>
+                )
+              })()}
+
               <motion.button
                 whileTap={{ scale: 0.96 }}
                 onClick={() => setSelected(null)}

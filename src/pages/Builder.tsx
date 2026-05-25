@@ -11,6 +11,7 @@ interface BuilderItem {
   exerciseId: string
   sets: number
   reps: number
+  weightKg: number
 }
 
 const CATS: Array<MuscleCategory | 'all'> = [
@@ -21,7 +22,7 @@ const CATS: Array<MuscleCategory | 'all'> = [
 
 export default function Builder() {
   const navigate = useNavigate()
-  const { plans, addPlan } = useWorkoutStore()
+  const { plans, addPlan, prefs } = useWorkoutStore()
   const [name, setName] = useState('')
   const [items, setItems] = useState<BuilderItem[]>([])
   const [filter, setFilter] = useState<MuscleCategory | 'all'>('all')
@@ -35,7 +36,7 @@ export default function Builder() {
     if (!ex) return
     setItems((prev) => [
       ...prev,
-      { uid: nanoid(), exerciseId: exId, sets: ex.defaultSets, reps: ex.defaultReps },
+      { uid: nanoid(), exerciseId: exId, sets: ex.defaultSets, reps: ex.defaultReps, weightKg: prefs.weightKg },
     ])
     setShowPicker(false)
   }
@@ -52,12 +53,24 @@ export default function Builder() {
     )
   }
 
+  function adjustWeight(uid: string, delta: number) {
+    setItems((prev) =>
+      prev.map((i) =>
+        i.uid === uid ? { ...i, weightKg: Math.max(0, parseFloat((i.weightKg + delta).toFixed(2))) } : i
+      )
+    )
+  }
+
+  function fmtKg(kg: number) {
+    return parseFloat(kg.toFixed(2)).toString()
+  }
+
   function save() {
     if (!name.trim() || !items.length) return
     addPlan({
       id: nanoid(),
       name: name.trim(),
-      exercises: items.map(({ exerciseId, sets, reps }) => ({ exerciseId, sets, reps })),
+      exercises: items.map(({ exerciseId, sets, reps, weightKg }) => ({ exerciseId, sets, reps, weightKg })),
       createdAt: new Date().toISOString(),
     })
     setSaved(true)
@@ -205,6 +218,25 @@ export default function Builder() {
                           </button>
                         </div>
                       ))}
+                    </div>
+                    {/* Weight */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 0, background: '#FAF7F2', borderRadius: 10, overflow: 'hidden', marginTop: 8 }}>
+                      <button
+                        onClick={() => adjustWeight(item.uid, -0.25)}
+                        style={{ padding: '8px 12px', background: 'none', border: 'none', fontSize: 18, color: '#7A6458', cursor: 'pointer', lineHeight: 1 }}
+                      >
+                        −
+                      </button>
+                      <div style={{ flex: 1, textAlign: 'center', fontSize: 14, fontWeight: 600, color: '#3A2E28' }}>
+                        {fmtKg(item.weightKg)}
+                        <span style={{ fontSize: 10, fontWeight: 400, color: '#C4A882', marginLeft: 3 }}>kg</span>
+                      </div>
+                      <button
+                        onClick={() => adjustWeight(item.uid, 0.25)}
+                        style={{ padding: '8px 12px', background: 'none', border: 'none', fontSize: 18, color: '#7A6458', cursor: 'pointer', lineHeight: 1 }}
+                      >
+                        +
+                      </button>
                     </div>
                   </Reorder.Item>
                 )

@@ -16,6 +16,12 @@ export interface WorkoutExercise {
   exerciseId: string
   sets: number
   reps: number
+  weightKg?: number
+}
+
+export interface ExercisePerformance {
+  exerciseId: string
+  weightKg: number
 }
 
 export interface WorkoutPlan {
@@ -32,6 +38,7 @@ export interface WorkoutLog {
   date: string
   durationSec: number
   completed: boolean
+  exercises?: ExercisePerformance[]
 }
 
 export interface UserPrefs {
