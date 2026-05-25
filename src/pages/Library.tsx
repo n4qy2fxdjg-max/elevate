@@ -123,6 +123,8 @@ export default function Library() {
             display: 'flex',
             gap: 8,
             overflowX: 'auto',
+            flexShrink: 0,
+            paddingTop: 2,
             paddingBottom: 4,
             marginBottom: 20,
             scrollbarWidth: 'none',

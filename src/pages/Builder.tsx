@@ -356,7 +356,7 @@ export default function Builder() {
 
               {/* Filter tabs */}
               <div
-                style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 12, marginBottom: 4, scrollbarWidth: 'none' }}
+                style={{ display: 'flex', gap: 6, overflowX: 'auto', flexShrink: 0, paddingTop: 2, paddingBottom: 12, marginBottom: 4, scrollbarWidth: 'none' }}
                 className="scrollbar-hide"
               >
                 {CATS.map((cat) => (
