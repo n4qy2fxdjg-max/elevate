@@ -102,7 +102,7 @@ export default function Home() {
                   style={{ cursor: 'text' }}
                 >
                   <em style={{ color: '#C4A882', fontWeight: 300 }}>My love, </em>
-                  <span style={{ borderBottom: '2px dotted #F2C4B0', paddingBottom: 1 }}>{prefs.name}</span>
+                  <span style={{ borderBottom: '2px solid #F2C4B0', paddingBottom: 1 }}>{prefs.name}</span>
                 </span>
               )}
             </h1>
