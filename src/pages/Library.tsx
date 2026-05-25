@@ -213,6 +213,9 @@ export default function Library() {
                 padding: '28px 24px',
                 paddingBottom: 'max(32px, calc(env(safe-area-inset-bottom) + 16px))',
                 zIndex: 1001,
+                maxHeight: '88svh',
+                overflowY: 'auto',
+                WebkitOverflowScrolling: 'touch',
               }}
             >
               <div

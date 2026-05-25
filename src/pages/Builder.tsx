@@ -383,7 +383,7 @@ export default function Builder() {
               </div>
 
               {/* List */}
-              <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 8, paddingBottom: 16 }}>
+              <div style={{ overflowY: 'auto', flex: 1, minHeight: 0, WebkitOverflowScrolling: 'touch', display: 'flex', flexDirection: 'column', gap: 8, paddingBottom: 16 }}>
                 {filtered.map((ex) => {
                   const already = items.some((i) => i.exerciseId === ex.id)
                   return (
