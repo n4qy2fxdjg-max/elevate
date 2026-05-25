@@ -20,7 +20,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
     (set) => ({
       plans: [],
       logs: [],
-      prefs: { name: 'Love', weightKg: 0.5 },
+      prefs: { name: 'Zain', weightKg: 0.5 },
       activePlanId: null,
       addPlan: (plan) => set((s) => ({ plans: [...s.plans, plan] })),
       deletePlan: (id) =>

@@ -73,32 +73,36 @@ export default function Home() {
               {getGreeting()},
               <br />
               {editingName ? (
-                <input
-                  autoFocus
-                  value={nameInput}
-                  onChange={(e) => setNameInput(e.target.value)}
-                  onBlur={() => { setPrefs({ name: nameInput || 'Love' }); setEditingName(false) }}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { setPrefs({ name: nameInput || 'Love' }); setEditingName(false) } }}
-                  style={{
-                    fontFamily: '"Cormorant Garamond", Georgia, serif',
-                    fontSize: 38,
-                    fontWeight: 400,
-                    color: '#3A2E28',
-                    background: 'none',
-                    border: 'none',
-                    borderBottom: '2px solid #F2C4B0',
-                    outline: 'none',
-                    width: '100%',
-                    padding: 0,
-                    lineHeight: 1.1,
-                  }}
-                />
+                <>
+                  <span style={{ color: '#C4A882', fontStyle: 'italic', fontSize: 32 }}>My love, </span>
+                  <input
+                    autoFocus
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                    onBlur={() => { setPrefs({ name: nameInput || 'Zain' }); setEditingName(false) }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { setPrefs({ name: nameInput || 'Zain' }); setEditingName(false) } }}
+                    style={{
+                      fontFamily: '"Cormorant Garamond", Georgia, serif',
+                      fontSize: 38,
+                      fontWeight: 400,
+                      color: '#3A2E28',
+                      background: 'none',
+                      border: 'none',
+                      borderBottom: '2px solid #F2C4B0',
+                      outline: 'none',
+                      width: '50%',
+                      padding: 0,
+                      lineHeight: 1.1,
+                    }}
+                  />
+                </>
               ) : (
                 <span
                   onClick={() => { setEditingName(true); setNameInput(prefs.name) }}
-                  style={{ borderBottom: '2px dotted #F2C4B0', cursor: 'text', paddingBottom: 1 }}
+                  style={{ cursor: 'text' }}
                 >
-                  {prefs.name}
+                  <em style={{ color: '#C4A882', fontWeight: 300 }}>My love, </em>
+                  <span style={{ borderBottom: '2px dotted #F2C4B0', paddingBottom: 1 }}>{prefs.name}</span>
                 </span>
               )}
             </h1>
