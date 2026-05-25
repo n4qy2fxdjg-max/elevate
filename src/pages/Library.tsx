@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { exercises, categoryColors } from '../data/exercises'
 import ExerciseCard from '../components/ExerciseCard'
@@ -179,8 +180,8 @@ export default function Library() {
         </motion.div>
       </div>
 
-      {/* Detail sheet */}
-      <AnimatePresence>
+      {/* Detail sheet — rendered into document.body via portal */}
+      {createPortal(<AnimatePresence>
         {selected && (
           <>
             <motion.div
@@ -352,7 +353,7 @@ export default function Library() {
             </motion.div>
           </>
         )}
-      </AnimatePresence>
+      </AnimatePresence>, document.body)}
     </>
   )
 }
