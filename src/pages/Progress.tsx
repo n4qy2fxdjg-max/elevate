@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useWorkoutStore } from '../store/useWorkoutStore'
 import type { ActivityLog } from '../types'
+import { fmtWeight, weightStep } from '../lib/units'
 
 const ACTIVITY_EMOJI: Record<string, string> = {
   Pilates: '🩰', Squash: '🎾', Yoga: '🧘', Running: '🏃',
@@ -35,6 +36,7 @@ function getStreak(logs: { date: string }[]) {
 
 export default function Progress() {
   const { logs, activityLogs, prefs, setPrefs, deleteLog, deleteActivityLog } = useWorkoutStore()
+  const unit = prefs.unit ?? 'kg'
   const allDates = [...logs.map(l => ({ date: l.date })), ...activityLogs.map(l => ({ date: l.date }))]
   const streak = getStreak(allDates)
 
@@ -225,7 +227,7 @@ export default function Progress() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <motion.button
             whileTap={{ scale: 0.9 }}
-            onClick={() => setPrefs({ weightKg: Math.max(0.25, +(prefs.weightKg - 0.25).toFixed(2)) })}
+            onClick={() => { const s = weightStep(unit); setPrefs({ weightKg: Math.max(s, parseFloat((prefs.weightKg - s).toFixed(4))) }) }}
             style={{
               width: 40,
               height: 40,
@@ -252,13 +254,13 @@ export default function Progress() {
                 lineHeight: 1,
               }}
             >
-              {prefs.weightKg}
+              {fmtWeight(prefs.weightKg, unit)}
             </div>
-            <div style={{ fontSize: 12, color: '#C4A882', marginTop: 2 }}>kg per wrist</div>
+            <div style={{ fontSize: 12, color: '#C4A882', marginTop: 2 }}>{unit} per wrist</div>
           </div>
           <motion.button
             whileTap={{ scale: 0.9 }}
-            onClick={() => setPrefs({ weightKg: +(prefs.weightKg + 0.25).toFixed(2) })}
+            onClick={() => { const s = weightStep(unit); setPrefs({ weightKg: parseFloat((prefs.weightKg + s).toFixed(4)) }) }}
             style={{
               width: 40,
               height: 40,

@@ -6,6 +6,7 @@ import { exercises as allExercises } from '../data/exercises'
 import { featuredPlans } from '../data/featuredPlans'
 import { useWorkoutStore } from '../store/useWorkoutStore'
 import ProgressRing from '../components/ProgressRing'
+import { fmtWeight, weightStep } from '../lib/units'
 
 const REST_SECONDS = 30
 
@@ -14,6 +15,7 @@ type Phase = 'exercise' | 'rest' | 'done'
 export default function ActiveWorkout() {
   const navigate = useNavigate()
   const { plans, activePlanId, addLog, setActivePlanId, prefs } = useWorkoutStore()
+  const unit = prefs.unit ?? 'kg'
   const plan = plans.find((p) => p.id === activePlanId) ?? featuredPlans.find((p) => p.id === activePlanId)
 
   const startTime = useRef(Date.now())
@@ -32,12 +34,8 @@ export default function ActiveWorkout() {
   function adjustExWeight(exerciseId: string, delta: number) {
     setExWeights((prev) => ({
       ...prev,
-      [exerciseId]: Math.max(0, parseFloat(((prev[exerciseId] ?? prefs.weightKg) + delta).toFixed(2))),
+      [exerciseId]: Math.max(0, parseFloat(((prev[exerciseId] ?? prefs.weightKg) + delta).toFixed(4))),
     }))
-  }
-
-  function fmtKg(kg: number) {
-    return parseFloat(kg.toFixed(2)).toString()
   }
 
   const currentItem = plan?.exercises[exIdx]
@@ -312,7 +310,7 @@ export default function ActiveWorkout() {
                 }}
               >
                 <button
-                  onClick={() => adjustExWeight(currentItem!.exerciseId, -0.25)}
+                  onClick={() => adjustExWeight(currentItem!.exerciseId, -weightStep(unit))}
                   style={{ padding: '10px 16px', background: 'none', border: 'none', fontSize: 20, color: '#C4A882', cursor: 'pointer', lineHeight: 1 }}
                 >
                   −
@@ -326,12 +324,12 @@ export default function ActiveWorkout() {
                       color: '#FAF7F2',
                     }}
                   >
-                    {fmtKg(exWeights[currentItem!.exerciseId] ?? prefs.weightKg)}
+                    {fmtWeight(exWeights[currentItem!.exerciseId] ?? prefs.weightKg, unit)}
                   </span>
-                  <span style={{ fontSize: 11, color: '#C4A882', marginLeft: 4 }}>kg</span>
+                  <span style={{ fontSize: 11, color: '#C4A882', marginLeft: 4 }}>{unit}</span>
                 </div>
                 <button
-                  onClick={() => adjustExWeight(currentItem!.exerciseId, 0.25)}
+                  onClick={() => adjustExWeight(currentItem!.exerciseId, weightStep(unit))}
                   style={{ padding: '10px 16px', background: 'none', border: 'none', fontSize: 20, color: '#C4A882', cursor: 'pointer', lineHeight: 1 }}
                 >
                   +

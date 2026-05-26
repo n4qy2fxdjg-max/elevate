@@ -6,10 +6,11 @@ import { BODY_GROUPS, GROUP_CATS, type BodyGroup } from '../data/categories'
 import ExerciseCard from '../components/ExerciseCard'
 import { useWorkoutStore } from '../store/useWorkoutStore'
 import type { Exercise, MuscleCategory } from '../types'
+import { fmtWeight } from '../lib/units'
 
 interface ChartPoint { date: string; weightKg: number }
 
-function OverloadChart({ data }: { data: ChartPoint[] }) {
+function OverloadChart({ data, unit }: { data: ChartPoint[]; unit: 'kg' | 'lb' }) {
   if (data.length === 0) return null
 
   const W = 300, H = 90
@@ -41,7 +42,7 @@ function OverloadChart({ data }: { data: ChartPoint[] }) {
       {/* y labels */}
       {ticks.map((t) => (
         <text key={t} x={padL - 4} y={sy(t) + 3.5} fontSize={8} fill="#C4A882" textAnchor="end">
-          {parseFloat(t.toFixed(2))}
+          {fmtWeight(t, unit)}
         </text>
       ))}
       {/* line */}
@@ -54,7 +55,7 @@ function OverloadChart({ data }: { data: ChartPoint[] }) {
           <circle cx={p.x} cy={p.y} r={3.5} fill="#F2C4B0" />
           {(i === pts.length - 1 || pts.length <= 4) && (
             <text x={p.x} y={p.y - 7} fontSize={8} fill="#C4A882" textAnchor="middle">
-              {parseFloat(p.w.toFixed(2))}kg
+              {fmtWeight(p.w, unit)}{unit}
             </text>
           )}
         </g>
@@ -75,7 +76,8 @@ function OverloadChart({ data }: { data: ChartPoint[] }) {
 }
 
 export default function Library() {
-  const { logs } = useWorkoutStore()
+  const { logs, prefs } = useWorkoutStore()
+  const unit = prefs.unit ?? 'kg'
   const [bodyGroup, setBodyGroup] = useState<BodyGroup>('all')
   const [active, setActive] = useState<MuscleCategory | 'all'>('all')
   const [selected, setSelected] = useState<Exercise | null>(null)
@@ -355,7 +357,7 @@ export default function Library() {
                     <div style={{ fontSize: 11, color: '#C4A882', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
                       Weight Progress
                     </div>
-                    <OverloadChart data={chartData} />
+                    <OverloadChart data={chartData} unit={unit} />
                     {chartData.length === 1 && (
                       <p style={{ fontSize: 11, color: '#C4A882', margin: '8px 0 0', textAlign: 'center', fontStyle: 'italic' }}>
                         Complete more sessions to see your progression.

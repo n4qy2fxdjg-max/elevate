@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useWorkoutStore } from '../store/useWorkoutStore'
 import { createSyncCode, verifySyncCode, pushSync } from '../lib/syncApi'
+import { fmtWeight, weightStep } from '../lib/units'
 
 type SyncView = 'idle' | 'creating' | 'joining' | 'active'
 
@@ -17,7 +18,7 @@ export default function Settings() {
 
   // Profile state
   const [nameInput, setNameInput] = useState(prefs.name)
-  const [weightInput, setWeightInput] = useState(String(prefs.weightKg))
+  const unit = prefs.unit ?? 'kg'
 
   async function handleCreate() {
     setLoading(true)
@@ -79,11 +80,7 @@ export default function Settings() {
   }
 
   function saveProfile() {
-    const w = parseFloat(weightInput)
-    setPrefs({
-      name: nameInput.trim() || prefs.name,
-      weightKg: isNaN(w) ? prefs.weightKg : w,
-    })
+    setPrefs({ name: nameInput.trim() || prefs.name })
   }
 
   const lastSyncedLabel = prefs.lastSynced
@@ -148,27 +145,56 @@ export default function Settings() {
           />
         </div>
 
+        {/* Unit toggle */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 13, color: '#7A6458', display: 'block', marginBottom: 8 }}>Weight unit</label>
+          <div style={{ display: 'flex', background: '#FAF7F2', borderRadius: 12, padding: 3, border: '1px solid rgba(196,168,130,0.25)', width: 'fit-content' }}>
+            {(['kg', 'lb'] as const).map((u) => (
+              <motion.button
+                key={u}
+                whileTap={{ scale: 0.94 }}
+                onClick={() => setPrefs({ unit: u })}
+                style={{
+                  padding: '8px 24px',
+                  borderRadius: 10,
+                  border: 'none',
+                  background: unit === u ? '#3A2E28' : 'transparent',
+                  color: unit === u ? '#FAF7F2' : '#7A6458',
+                  fontSize: 14,
+                  fontWeight: unit === u ? 600 : 400,
+                  cursor: 'pointer',
+                  fontFamily: '"DM Sans", system-ui, sans-serif',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {u}
+              </motion.button>
+            ))}
+          </div>
+        </div>
+
+        {/* Default ankle weight */}
         <div>
-          <label style={{ fontSize: 13, color: '#7A6458', display: 'block', marginBottom: 6 }}>Default ankle weight (kg)</label>
+          <label style={{ fontSize: 13, color: '#7A6458', display: 'block', marginBottom: 6 }}>
+            Default ankle weight ({unit})
+          </label>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => {
-                const v = Math.max(0.25, parseFloat(weightInput) - 0.25)
-                setWeightInput(String(v))
-                setPrefs({ weightKg: v })
+                const step = weightStep(unit)
+                setPrefs({ weightKg: Math.max(step, parseFloat((prefs.weightKg - step).toFixed(4))) })
               }}
               style={stepperBtn}
             >−</motion.button>
-            <span style={{ fontSize: 18, fontWeight: 500, color: '#3A2E28', minWidth: 48, textAlign: 'center' }}>
-              {parseFloat(weightInput).toFixed(2)} kg
+            <span style={{ fontSize: 18, fontWeight: 500, color: '#3A2E28', minWidth: 64, textAlign: 'center' }}>
+              {fmtWeight(prefs.weightKg, unit)} {unit}
             </span>
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => {
-                const v = parseFloat(weightInput) + 0.25
-                setWeightInput(String(v))
-                setPrefs({ weightKg: v })
+                const step = weightStep(unit)
+                setPrefs({ weightKg: parseFloat((prefs.weightKg + step).toFixed(4)) })
               }}
               style={stepperBtn}
             >+</motion.button>

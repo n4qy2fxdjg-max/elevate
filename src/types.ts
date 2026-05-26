@@ -44,6 +44,7 @@ export interface WorkoutLog {
 export interface UserPrefs {
   name: string
   weightKg: number
+  unit?: 'kg' | 'lb'
   syncCode?: string
   lastSynced?: string
 }

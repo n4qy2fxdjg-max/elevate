@@ -7,6 +7,7 @@ import { exercises as allExercises, categoryColors } from '../data/exercises'
 import { BODY_GROUPS, GROUP_CATS, type BodyGroup } from '../data/categories'
 import { useWorkoutStore } from '../store/useWorkoutStore'
 import type { MuscleCategory } from '../types'
+import { fmtWeight, weightStep } from '../lib/units'
 
 interface BuilderItem {
   uid: string
@@ -20,6 +21,7 @@ interface BuilderItem {
 export default function Builder() {
   const navigate = useNavigate()
   const { plans, addPlan, prefs } = useWorkoutStore()
+  const unit = prefs.unit ?? 'kg'
   const [name, setName] = useState('')
   const [items, setItems] = useState<BuilderItem[]>([])
   const [bodyGroup, setBodyGroup] = useState<BodyGroup>('all')
@@ -65,13 +67,9 @@ export default function Builder() {
   function adjustWeight(uid: string, delta: number) {
     setItems((prev) =>
       prev.map((i) =>
-        i.uid === uid ? { ...i, weightKg: Math.max(0, parseFloat((i.weightKg + delta).toFixed(2))) } : i
+        i.uid === uid ? { ...i, weightKg: Math.max(0, parseFloat((i.weightKg + delta).toFixed(4))) } : i
       )
     )
-  }
-
-  function fmtKg(kg: number) {
-    return parseFloat(kg.toFixed(2)).toString()
   }
 
   function save() {
@@ -231,17 +229,17 @@ export default function Builder() {
                     {/* Weight */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 0, background: '#FAF7F2', borderRadius: 10, overflow: 'hidden', marginTop: 8 }}>
                       <button
-                        onClick={() => adjustWeight(item.uid, -0.25)}
+                        onClick={() => adjustWeight(item.uid, -weightStep(unit))}
                         style={{ padding: '8px 12px', background: 'none', border: 'none', fontSize: 18, color: '#7A6458', cursor: 'pointer', lineHeight: 1 }}
                       >
                         −
                       </button>
                       <div style={{ flex: 1, textAlign: 'center', fontSize: 14, fontWeight: 600, color: '#3A2E28' }}>
-                        {fmtKg(item.weightKg)}
-                        <span style={{ fontSize: 10, fontWeight: 400, color: '#C4A882', marginLeft: 3 }}>kg</span>
+                        {fmtWeight(item.weightKg, unit)}
+                        <span style={{ fontSize: 10, fontWeight: 400, color: '#C4A882', marginLeft: 3 }}>{unit}</span>
                       </div>
                       <button
-                        onClick={() => adjustWeight(item.uid, 0.25)}
+                        onClick={() => adjustWeight(item.uid, weightStep(unit))}
                         style={{ padding: '8px 12px', background: 'none', border: 'none', fontSize: 18, color: '#7A6458', cursor: 'pointer', lineHeight: 1 }}
                       >
                         +
