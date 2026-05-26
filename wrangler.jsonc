@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "elevate",
+  "main": "src/worker.ts",
   "compatibility_date": "2026-05-24",
   "observability": {
     "enabled": true
@@ -11,5 +12,12 @@
   },
   "compatibility_flags": [
     "nodejs_compat"
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "elevate-db",
+      "database_id": "e0bdebcc-db73-49f1-85d8-cbcb8155f660"
+    }
   ]
 }

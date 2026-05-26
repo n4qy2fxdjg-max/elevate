@@ -54,6 +54,16 @@ const navItems = [
       </svg>
     ),
   },
+  {
+    to: '/settings',
+    label: 'Profile',
+    icon: (active: boolean) => (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="8" r="3.5" stroke={active ? '#3A2E28' : '#C4A882'} strokeWidth={active ? 2 : 1.5} fill={active ? '#F2C4B0' : 'none'} />
+        <path d="M4 20c0-3.314 3.582-6 8-6s8 2.686 8 6" stroke={active ? '#3A2E28' : '#C4A882'} strokeWidth={active ? 2 : 1.5} strokeLinecap="round" />
+      </svg>
+    ),
+  },
 ]
 
 export default function Layout() {

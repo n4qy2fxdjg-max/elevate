@@ -5,6 +5,7 @@ import Library from './pages/Library'
 import Builder from './pages/Builder'
 import ActiveWorkout from './pages/ActiveWorkout'
 import Progress from './pages/Progress'
+import Settings from './pages/Settings'
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
           <Route path="library" element={<Library />} />
           <Route path="builder" element={<Builder />} />
           <Route path="progress" element={<Progress />} />
+          <Route path="settings" element={<Settings />} />
         </Route>
         <Route path="active" element={<ActiveWorkout />} />
         <Route path="*" element={<Navigate to="/" replace />} />

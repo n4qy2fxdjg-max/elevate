@@ -1,0 +1,127 @@
+export interface Env {
+  DB: D1Database
+  ASSETS: Fetcher
+}
+
+function corsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  }
+}
+
+function json(data: unknown, status = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json', ...corsHeaders() },
+  })
+}
+
+function err(msg: string, status = 400): Response {
+  return json({ error: msg }, status)
+}
+
+function generateCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  let code = ''
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)]
+  return code
+}
+
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url)
+
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { headers: corsHeaders() })
+    }
+
+    if (url.pathname.startsWith('/api/')) {
+      return handleApi(request, env, url)
+    }
+
+    return env.ASSETS.fetch(request)
+  },
+}
+
+async function handleApi(request: Request, env: Env, url: URL): Promise<Response> {
+  const path = url.pathname.replace('/api', '')
+
+  // POST /api/sync/create
+  if (path === '/sync/create' && request.method === 'POST') {
+    let code = generateCode()
+    for (let i = 0; i < 5; i++) {
+      const existing = await env.DB.prepare('SELECT code FROM sync_codes WHERE code = ?').bind(code).first()
+      if (!existing) break
+      code = generateCode()
+    }
+    await env.DB.prepare('INSERT INTO sync_codes (code, created_at) VALUES (?, ?)')
+      .bind(code, new Date().toISOString())
+      .run()
+    return json({ code })
+  }
+
+  // POST /api/sync/verify
+  if (path === '/sync/verify' && request.method === 'POST') {
+    const body = (await request.json()) as { code: string }
+    const row = await env.DB.prepare('SELECT code FROM sync_codes WHERE code = ?')
+      .bind(body.code.toUpperCase().trim())
+      .first()
+    return json({ exists: !!row })
+  }
+
+  // /api/sync/:code/push  or  /api/sync/:code/pull
+  const syncMatch = path.match(/^\/sync\/([A-Z0-9]+)\/(push|pull)$/)
+  if (syncMatch) {
+    const [, code, action] = syncMatch
+
+    const codeRow = await env.DB.prepare('SELECT code FROM sync_codes WHERE code = ?').bind(code).first()
+    if (!codeRow) return err('Invalid sync code', 404)
+
+    if (action === 'push' && request.method === 'POST') {
+      const { logs, plans } = (await request.json()) as { logs: unknown[]; plans: unknown[] }
+      const now = new Date().toISOString()
+
+      // Full replace — delete then re-insert
+      await env.DB.batch([
+        env.DB.prepare('DELETE FROM workout_logs WHERE sync_code = ?').bind(code),
+        env.DB.prepare('DELETE FROM workout_plans WHERE sync_code = ?').bind(code),
+      ])
+
+      if (logs.length > 0) {
+        const stmt = env.DB.prepare(
+          'INSERT INTO workout_logs (id, sync_code, data, updated_at) VALUES (?, ?, ?, ?)'
+        )
+        await env.DB.batch(
+          logs.map((log: any) => stmt.bind(log.id, code, JSON.stringify(log), now))
+        )
+      }
+
+      if (plans.length > 0) {
+        const stmt = env.DB.prepare(
+          'INSERT INTO workout_plans (id, sync_code, data, updated_at) VALUES (?, ?, ?, ?)'
+        )
+        await env.DB.batch(
+          plans.map((plan: any) => stmt.bind(plan.id, code, JSON.stringify(plan), now))
+        )
+      }
+
+      return json({ ok: true, synced: now })
+    }
+
+    if (action === 'pull' && request.method === 'GET') {
+      const [logsResult, plansResult] = await env.DB.batch([
+        env.DB.prepare('SELECT data FROM workout_logs WHERE sync_code = ? ORDER BY updated_at DESC').bind(code),
+        env.DB.prepare('SELECT data FROM workout_plans WHERE sync_code = ?').bind(code),
+      ])
+
+      const logs = (logsResult.results ?? []).map((r) => JSON.parse(r.data as string))
+      const plans = (plansResult.results ?? []).map((r) => JSON.parse(r.data as string))
+
+      return json({ logs, plans })
+    }
+  }
+
+  return err('Not found', 404)
+}
