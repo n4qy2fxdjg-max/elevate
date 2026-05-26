@@ -1,11 +1,27 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useWorkoutStore } from '../store/useWorkoutStore'
 import WorkoutCard from '../components/WorkoutCard'
 import { featuredPlans, featuredMeta } from '../data/featuredPlans'
 import { exercises as allExercises, categoryColors } from '../data/exercises'
-import type { WorkoutPlan } from '../types'
+import type { WorkoutPlan, ActivityLog } from '../types'
+
+const ACTIVITY_TYPES = [
+  { label: 'Pilates', emoji: '🩰' },
+  { label: 'Squash', emoji: '🎾' },
+  { label: 'Yoga', emoji: '🧘' },
+  { label: 'Running', emoji: '🏃' },
+  { label: 'Cycling', emoji: '🚴' },
+  { label: 'Swimming', emoji: '🏊' },
+  { label: 'Tennis', emoji: '🎾' },
+  { label: 'Walking', emoji: '🚶' },
+  { label: 'Gym', emoji: '💪' },
+  { label: 'Dance', emoji: '💃' },
+  { label: 'Hiking', emoji: '🥾' },
+  { label: 'Other', emoji: '✏️' },
+]
 
 function getGreeting() {
   const h = new Date().getHours()
@@ -32,10 +48,40 @@ function getStreak(logs: { date: string }[]) {
 
 export default function Home() {
   const navigate = useNavigate()
-  const { plans, logs, prefs, setActivePlanId, setPrefs } = useWorkoutStore()
-  const streak = getStreak(logs)
+  const { plans, logs, activityLogs, prefs, setActivePlanId, setPrefs, addActivityLog } = useWorkoutStore()
+  const allLogs = [...logs.map(l => ({ date: l.date })), ...activityLogs.map(l => ({ date: l.date }))]
+  const streak = getStreak(allLogs)
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState(prefs.name)
+
+  // Activity log sheet
+  const [logOpen, setLogOpen] = useState(false)
+  const [selectedActivity, setSelectedActivity] = useState<string | null>(null)
+  const [customActivity, setCustomActivity] = useState('')
+  const [durationMin, setDurationMin] = useState(45)
+  const [notes, setNotes] = useState('')
+
+  function resetLogSheet() {
+    setSelectedActivity(null)
+    setCustomActivity('')
+    setDurationMin(45)
+    setNotes('')
+  }
+
+  function handleLogSession() {
+    const actType = selectedActivity === 'Other' ? (customActivity.trim() || 'Other') : selectedActivity
+    if (!actType) return
+    const log: ActivityLog = {
+      id: `act-${Date.now()}`,
+      activityType: actType,
+      durationMin,
+      date: new Date().toISOString(),
+      notes: notes.trim() || undefined,
+    }
+    addActivityLog(log)
+    setLogOpen(false)
+    resetLogSheet()
+  }
 
   const suggestedPlan = plans[0] ?? null
 
@@ -44,7 +90,7 @@ export default function Home() {
     navigate('/active')
   }
 
-  const thisWeek = logs.filter((l) => {
+  const thisWeek = allLogs.filter((l) => {
     const d = new Date(l.date)
     const now = new Date()
     const weekAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6)
@@ -134,7 +180,7 @@ export default function Home() {
         {[
           { label: 'This week', value: thisWeek, unit: 'workouts' },
           { label: 'Weight', value: prefs.weightKg, unit: 'kg' },
-          { label: 'Total', value: logs.length, unit: 'sessions' },
+          { label: 'Total', value: allLogs.length, unit: 'sessions' },
         ].map((stat) => (
           <div
             key={stat.label}
@@ -164,6 +210,39 @@ export default function Home() {
           </div>
         ))}
       </div>
+
+      {/* Log Session button */}
+      <motion.button
+        whileTap={{ scale: 0.97 }}
+        onClick={() => { resetLogSheet(); setLogOpen(true) }}
+        style={{
+          width: '100%',
+          background: 'linear-gradient(135deg, #F2C4B0 0%, #E8D8C4 100%)',
+          border: 'none',
+          borderRadius: 20,
+          padding: '18px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          cursor: 'pointer',
+          marginBottom: 28,
+          boxShadow: '0 2px 10px rgba(242,196,176,0.3)',
+        }}
+      >
+        <div style={{ textAlign: 'left' }}>
+          <div style={{ fontFamily: '"Cormorant Garamond", Georgia, serif', fontSize: 20, fontWeight: 500, color: '#3A2E28', lineHeight: 1.2 }}>
+            Log a session
+          </div>
+          <div style={{ fontSize: 13, color: '#7A6458', marginTop: 3 }}>
+            Pilates, squash, yoga & more
+          </div>
+        </div>
+        <div style={{ width: 40, height: 40, background: '#3A2E28', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M12 5v14M5 12h14" stroke="#FAF7F2" strokeWidth="2.2" strokeLinecap="round" />
+          </svg>
+        </div>
+      </motion.button>
 
       {/* Featured routines */}
       <div style={{ marginBottom: 28 }}>
@@ -402,7 +481,7 @@ export default function Home() {
       )}
 
       {/* Recent activity */}
-      {logs.length > 0 && (
+      {allLogs.length > 0 && (
         <div>
           <h2
             style={{
@@ -416,9 +495,12 @@ export default function Home() {
             Recent Activity
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {logs.slice(0, 5).map((log) => (
+            {[
+              ...logs.map(l => ({ date: l.date, label: l.planName, sub: `${Math.round(l.durationSec / 60)} min`, tag: l.completed ? 'Done' : 'Partial', tagGreen: l.completed })),
+              ...activityLogs.map(l => ({ date: l.date, label: l.activityType, sub: `${l.durationMin} min`, tag: 'Logged', tagGreen: true })),
+            ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5).map((item, i) => (
               <div
-                key={log.id}
+                key={i}
                 style={{
                   background: '#fff',
                   borderRadius: 16,
@@ -430,32 +512,149 @@ export default function Home() {
                 }}
               >
                 <div>
-                  <div style={{ fontSize: 15, fontWeight: 500, color: '#3A2E28' }}>{log.planName}</div>
+                  <div style={{ fontSize: 15, fontWeight: 500, color: '#3A2E28' }}>{item.label}</div>
                   <div style={{ fontSize: 12, color: '#C4A882', marginTop: 2 }}>
-                    {new Date(log.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                    {new Date(item.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 13, color: '#7A6458' }}>
-                    {Math.round(log.durationSec / 60)} min
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: log.completed ? '#2A6040' : '#C4A882',
-                      background: log.completed ? '#C8E0C8' : '#F0EAE0',
-                      borderRadius: 6,
-                      padding: '2px 6px',
-                      marginTop: 3,
-                    }}
-                  >
-                    {log.completed ? 'Done' : 'Partial'}
+                  <div style={{ fontSize: 13, color: '#7A6458' }}>{item.sub}</div>
+                  <div style={{ fontSize: 11, color: item.tagGreen ? '#2A6040' : '#C4A882', background: item.tagGreen ? '#C8E0C8' : '#F0EAE0', borderRadius: 6, padding: '2px 6px', marginTop: 3 }}>
+                    {item.tag}
                   </div>
                 </div>
               </div>
             ))}
           </div>
         </div>
+      )}
+
+      {/* Log Session sheet */}
+      {createPortal(
+        <AnimatePresence>
+          {logOpen && (
+            <>
+              <motion.div
+                key="backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setLogOpen(false)}
+                style={{ position: 'fixed', inset: 0, background: 'rgba(58,46,40,0.4)', zIndex: 1000 }}
+              />
+              <motion.div
+                key="sheet"
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                style={{
+                  position: 'fixed', bottom: 0, left: 0, right: 0,
+                  margin: '0 auto', width: '100%', maxWidth: 430,
+                  background: '#FAF7F2', borderRadius: '28px 28px 0 0',
+                  padding: '28px 24px',
+                  paddingBottom: 'max(32px, calc(env(safe-area-inset-bottom) + 16px))',
+                  zIndex: 1001, maxHeight: '90svh', overflowY: 'auto',
+                  WebkitOverflowScrolling: 'touch',
+                }}
+              >
+                <div style={{ width: 36, height: 4, background: '#E8D8C4', borderRadius: 2, margin: '0 auto 24px' }} />
+                <h2 style={{ fontFamily: '"Cormorant Garamond", Georgia, serif', fontSize: 28, fontWeight: 500, color: '#3A2E28', margin: '0 0 20px', lineHeight: 1.1 }}>
+                  Log a session
+                </h2>
+
+                {/* Activity grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 20 }}>
+                  {ACTIVITY_TYPES.map((a) => (
+                    <motion.button
+                      key={a.label}
+                      whileTap={{ scale: 0.93 }}
+                      onClick={() => setSelectedActivity(a.label)}
+                      style={{
+                        background: selectedActivity === a.label ? '#3A2E28' : '#fff',
+                        color: selectedActivity === a.label ? '#FAF7F2' : '#3A2E28',
+                        border: '1px solid ' + (selectedActivity === a.label ? 'transparent' : 'rgba(196,168,130,0.25)'),
+                        borderRadius: 14,
+                        padding: '12px 8px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 4,
+                        fontFamily: '"DM Sans", system-ui, sans-serif',
+                      }}
+                    >
+                      <span style={{ fontSize: 20 }}>{a.emoji}</span>
+                      <span style={{ fontSize: 11, fontWeight: 500 }}>{a.label}</span>
+                    </motion.button>
+                  ))}
+                </div>
+
+                {/* Custom activity input */}
+                {selectedActivity === 'Other' && (
+                  <input
+                    value={customActivity}
+                    onChange={(e) => setCustomActivity(e.target.value)}
+                    placeholder="Activity name…"
+                    style={{
+                      width: '100%', background: '#fff', border: '1px solid rgba(196,168,130,0.3)',
+                      borderRadius: 12, padding: '12px 14px', fontSize: 15, color: '#3A2E28',
+                      fontFamily: '"DM Sans", system-ui, sans-serif', boxSizing: 'border-box',
+                      outline: 'none', marginBottom: 16,
+                    }}
+                  />
+                )}
+
+                {/* Duration */}
+                <div style={{ background: '#fff', borderRadius: 16, padding: '16px', marginBottom: 14, border: '1px solid rgba(196,168,130,0.15)' }}>
+                  <div style={{ fontSize: 11, color: '#C4A882', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 }}>Duration</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <motion.button whileTap={{ scale: 0.9 }} onClick={() => setDurationMin(Math.max(15, durationMin - 15))}
+                      style={{ width: 40, height: 40, background: '#FAF7F2', border: '1px solid rgba(196,168,130,0.3)', borderRadius: 12, fontSize: 20, color: '#3A2E28', cursor: 'pointer' }}>
+                      −
+                    </motion.button>
+                    <div style={{ flex: 1, textAlign: 'center' }}>
+                      <span style={{ fontFamily: '"Cormorant Garamond", Georgia, serif', fontSize: 36, fontWeight: 400, color: '#3A2E28' }}>{durationMin}</span>
+                      <span style={{ fontSize: 14, color: '#C4A882', marginLeft: 4 }}>min</span>
+                    </div>
+                    <motion.button whileTap={{ scale: 0.9 }} onClick={() => setDurationMin(durationMin + 15)}
+                      style={{ width: 40, height: 40, background: '#FAF7F2', border: '1px solid rgba(196,168,130,0.3)', borderRadius: 12, fontSize: 20, color: '#3A2E28', cursor: 'pointer' }}>
+                      +
+                    </motion.button>
+                  </div>
+                </div>
+
+                {/* Notes */}
+                <input
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Add a note… (optional)"
+                  style={{
+                    width: '100%', background: '#fff', border: '1px solid rgba(196,168,130,0.2)',
+                    borderRadius: 12, padding: '12px 14px', fontSize: 14, color: '#3A2E28',
+                    fontFamily: '"DM Sans", system-ui, sans-serif', boxSizing: 'border-box',
+                    outline: 'none', marginBottom: 16,
+                  }}
+                />
+
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={handleLogSession}
+                  disabled={!selectedActivity}
+                  style={{
+                    width: '100%', background: selectedActivity ? '#3A2E28' : '#C4A882',
+                    color: '#FAF7F2', border: 'none', borderRadius: 16, padding: '16px',
+                    fontSize: 16, fontWeight: 500, cursor: selectedActivity ? 'pointer' : 'default',
+                    fontFamily: '"DM Sans", system-ui, sans-serif', transition: 'background 0.15s',
+                  }}
+                >
+                  Log Session
+                </motion.button>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body
       )}
     </div>
   )

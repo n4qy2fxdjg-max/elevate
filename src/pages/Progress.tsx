@@ -1,6 +1,13 @@
 import { useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useWorkoutStore } from '../store/useWorkoutStore'
+import type { ActivityLog } from '../types'
+
+const ACTIVITY_EMOJI: Record<string, string> = {
+  Pilates: '🩰', Squash: '🎾', Yoga: '🧘', Running: '🏃',
+  Cycling: '🚴', Swimming: '🏊', Tennis: '🎾', Walking: '🚶',
+  Gym: '💪', Dance: '💃', Hiking: '🥾', Other: '✏️',
+}
 
 function isoToDate(iso: string) {
   return new Date(iso)
@@ -27,8 +34,9 @@ function getStreak(logs: { date: string }[]) {
 }
 
 export default function Progress() {
-  const { logs, prefs, setPrefs, deleteLog } = useWorkoutStore()
-  const streak = getStreak(logs)
+  const { logs, activityLogs, prefs, setPrefs, deleteLog, deleteActivityLog } = useWorkoutStore()
+  const allDates = [...logs.map(l => ({ date: l.date })), ...activityLogs.map(l => ({ date: l.date }))]
+  const streak = getStreak(allDates)
 
   const heatmap = useMemo(() => {
     const weeks = 12
@@ -40,11 +48,11 @@ export default function Progress() {
     for (let i = 0; i < weeks * 7; i++) {
       const d = new Date(start)
       d.setDate(d.getDate() + i)
-      const count = logs.filter((l) => sameDay(isoToDate(l.date), d)).length
+      const count = allDates.filter((l) => sameDay(isoToDate(l.date), d)).length
       days.push({ date: d, count })
     }
     return days
-  }, [logs])
+  }, [logs, activityLogs])
 
   const weekRows = useMemo(() => {
     const rows: typeof heatmap[] = []
@@ -54,7 +62,7 @@ export default function Progress() {
     return rows
   }, [heatmap])
 
-  const thisWeekLogs = logs.filter((l) => {
+  const thisWeekLogs = allDates.filter((l) => {
     const d = new Date(l.date)
     const now = new Date()
     const weekAgo = new Date(now)
@@ -62,7 +70,9 @@ export default function Progress() {
     return d >= weekAgo
   })
 
-  const totalMinutes = logs.reduce((s, l) => s + Math.round(l.durationSec / 60), 0)
+  const totalMinutes =
+    logs.reduce((s, l) => s + Math.round(l.durationSec / 60), 0) +
+    activityLogs.reduce((s, l) => s + l.durationMin, 0)
 
   function getHeatColor(count: number) {
     if (count === 0) return 'rgba(196,168,130,0.12)'
@@ -88,7 +98,7 @@ export default function Progress() {
         <em>Progress</em>
       </h1>
       <p style={{ fontSize: 14, color: '#C4A882', margin: '0 0 24px' }}>
-        {logs.length} total sessions
+        {logs.length + activityLogs.length} total sessions
       </p>
 
       {/* Big stats */}
@@ -97,7 +107,7 @@ export default function Progress() {
           { value: streak, label: 'Day Streak', accent: true },
           { value: thisWeekLogs.length, label: 'This Week' },
           { value: totalMinutes, label: 'Total Minutes' },
-          { value: logs.filter((l) => l.completed).length, label: 'Completed' },
+          { value: logs.filter((l) => l.completed).length + activityLogs.length, label: 'Completed' },
         ].map((s) => (
           <motion.div
             key={s.label}
@@ -268,96 +278,99 @@ export default function Progress() {
         </div>
       </div>
 
-      {/* Recent logs */}
-      {logs.length > 0 && (
-        <div>
-          <div
-            style={{
-              fontFamily: '"Cormorant Garamond", Georgia, serif',
-              fontSize: 22,
-              fontWeight: 500,
-              color: '#3A2E28',
-              margin: '0 0 12px',
-            }}
-          >
-            History
-          </div>
-          <AnimatePresence>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {logs.slice(0, 10).map((log) => (
-              <motion.div
-                key={log.id}
-                layout
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                style={{
-                  background: '#fff',
-                  borderRadius: 16,
-                  padding: '14px 16px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  border: '1px solid rgba(196,168,130,0.12)',
-                }}
-              >
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 15, fontWeight: 500, color: '#3A2E28' }}>{log.planName}</div>
-                  <div style={{ fontSize: 12, color: '#C4A882', marginTop: 2 }}>
-                    {new Date(log.date).toLocaleDateString('en-US', {
-                      weekday: 'short',
-                      month: 'short',
-                      day: 'numeric',
-                    })}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 13, color: '#7A6458' }}>
-                      {Math.round(log.durationSec / 60)} min
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: log.completed ? '#2A6040' : '#C4A882',
-                        background: log.completed ? '#C8E0C8' : '#F0EAE0',
-                        borderRadius: 6,
-                        padding: '2px 6px',
-                        marginTop: 3,
-                      }}
-                    >
-                      {log.completed ? 'Done' : 'Partial'}
-                    </div>
-                  </div>
-                  <motion.button
-                    whileTap={{ scale: 0.88 }}
-                    onClick={() => deleteLog(log.id)}
+      {/* History — workouts + activity logs merged */}
+      {(logs.length > 0 || activityLogs.length > 0) && (() => {
+        type HistoryItem =
+          | { kind: 'workout'; id: string; label: string; date: string; sub: string; tag: string; green: boolean }
+          | { kind: 'activity'; id: string; label: string; date: string; sub: string; notes?: string }
+
+        const items: HistoryItem[] = [
+          ...logs.map(l => ({
+            kind: 'workout' as const, id: l.id,
+            label: l.planName, date: l.date,
+            sub: `${Math.round(l.durationSec / 60)} min`,
+            tag: l.completed ? 'Done' : 'Partial',
+            green: l.completed,
+          })),
+          ...activityLogs.map((l: ActivityLog) => ({
+            kind: 'activity' as const, id: l.id,
+            label: l.activityType, date: l.date,
+            sub: `${l.durationMin} min`,
+            notes: l.notes,
+          })),
+        ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 15)
+
+        return (
+          <div>
+            <div style={{ fontFamily: '"Cormorant Garamond", Georgia, serif', fontSize: 22, fontWeight: 500, color: '#3A2E28', margin: '0 0 12px' }}>
+              History
+            </div>
+            <AnimatePresence>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {items.map((item) => (
+                  <motion.div
+                    key={item.id}
+                    layout
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, height: 0, marginBottom: 0 }}
                     style={{
-                      width: 30,
-                      height: 30,
-                      background: '#F0EAE0',
-                      border: 'none',
-                      borderRadius: 8,
+                      background: item.kind === 'activity' ? '#FDF5F0' : '#fff',
+                      borderRadius: 16,
+                      padding: '14px 16px',
                       display: 'flex',
+                      justifyContent: 'space-between',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      fontSize: 16,
-                      color: '#B09080',
-                      flexShrink: 0,
+                      border: '1px solid ' + (item.kind === 'activity' ? 'rgba(242,196,176,0.3)' : 'rgba(196,168,130,0.12)'),
                     }}
                   >
-                    ×
-                  </motion.button>
-                </div>
-              </motion.div>
-            ))}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {item.kind === 'activity' && (
+                          <span style={{ fontSize: 13 }}>
+                            {ACTIVITY_EMOJI[item.label] ?? '🏃'}
+                          </span>
+                        )}
+                        <div style={{ fontSize: 15, fontWeight: 500, color: '#3A2E28' }}>{item.label}</div>
+                      </div>
+                      <div style={{ fontSize: 12, color: '#C4A882', marginTop: 2 }}>
+                        {new Date(item.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                        {item.kind === 'activity' && item.notes && (
+                          <span style={{ color: '#B09080' }}> · {item.notes}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 13, color: '#7A6458' }}>{item.sub}</div>
+                        {item.kind === 'workout' && (
+                          <div style={{ fontSize: 11, color: item.green ? '#2A6040' : '#C4A882', background: item.green ? '#C8E0C8' : '#F0EAE0', borderRadius: 6, padding: '2px 6px', marginTop: 3 }}>
+                            {item.tag}
+                          </div>
+                        )}
+                        {item.kind === 'activity' && (
+                          <div style={{ fontSize: 11, color: '#7A4020', background: '#F2C4B0', borderRadius: 6, padding: '2px 6px', marginTop: 3 }}>
+                            Activity
+                          </div>
+                        )}
+                      </div>
+                      <motion.button
+                        whileTap={{ scale: 0.88 }}
+                        onClick={() => item.kind === 'workout' ? deleteLog(item.id) : deleteActivityLog(item.id)}
+                        style={{ width: 30, height: 30, background: '#F0EAE0', border: 'none', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16, color: '#B09080', flexShrink: 0 }}
+                      >
+                        ×
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </AnimatePresence>
           </div>
-          </AnimatePresence>
-        </div>
-      )}
+        )
+      })()}
 
-      {logs.length === 0 && (
+      {logs.length === 0 && activityLogs.length === 0 && (
         <div
           style={{
             background: '#fff',

@@ -80,46 +80,60 @@ async function handleApi(request: Request, env: Env, url: URL): Promise<Response
     if (!codeRow) return err('Invalid sync code', 404)
 
     if (action === 'push' && request.method === 'POST') {
-      const { logs, plans } = (await request.json()) as { logs: unknown[]; plans: unknown[] }
+      const { logs, plans, activityLogs = [] } = (await request.json()) as {
+        logs: any[]
+        plans: any[]
+        activityLogs?: any[]
+      }
       const now = new Date().toISOString()
 
-      // Full replace — delete then re-insert
+      // Full replace for all three tables
       await env.DB.batch([
         env.DB.prepare('DELETE FROM workout_logs WHERE sync_code = ?').bind(code),
         env.DB.prepare('DELETE FROM workout_plans WHERE sync_code = ?').bind(code),
+        env.DB.prepare('DELETE FROM activity_logs WHERE sync_code = ?').bind(code),
       ])
+
+      const batches: D1PreparedStatement[] = []
 
       if (logs.length > 0) {
         const stmt = env.DB.prepare(
           'INSERT INTO workout_logs (id, sync_code, data, updated_at) VALUES (?, ?, ?, ?)'
         )
-        await env.DB.batch(
-          logs.map((log: any) => stmt.bind(log.id, code, JSON.stringify(log), now))
-        )
+        for (const log of logs) batches.push(stmt.bind(log.id, code, JSON.stringify(log), now))
       }
 
       if (plans.length > 0) {
         const stmt = env.DB.prepare(
           'INSERT INTO workout_plans (id, sync_code, data, updated_at) VALUES (?, ?, ?, ?)'
         )
-        await env.DB.batch(
-          plans.map((plan: any) => stmt.bind(plan.id, code, JSON.stringify(plan), now))
-        )
+        for (const plan of plans) batches.push(stmt.bind(plan.id, code, JSON.stringify(plan), now))
       }
+
+      if (activityLogs.length > 0) {
+        const stmt = env.DB.prepare(
+          'INSERT INTO activity_logs (id, sync_code, data, updated_at) VALUES (?, ?, ?, ?)'
+        )
+        for (const log of activityLogs) batches.push(stmt.bind(log.id, code, JSON.stringify(log), now))
+      }
+
+      if (batches.length > 0) await env.DB.batch(batches)
 
       return json({ ok: true, synced: now })
     }
 
     if (action === 'pull' && request.method === 'GET') {
-      const [logsResult, plansResult] = await env.DB.batch([
+      const [logsResult, plansResult, activityResult] = await env.DB.batch([
         env.DB.prepare('SELECT data FROM workout_logs WHERE sync_code = ? ORDER BY updated_at DESC').bind(code),
         env.DB.prepare('SELECT data FROM workout_plans WHERE sync_code = ?').bind(code),
+        env.DB.prepare('SELECT data FROM activity_logs WHERE sync_code = ? ORDER BY updated_at DESC').bind(code),
       ])
 
       const logs = (logsResult.results ?? []).map((r) => JSON.parse(r.data as string))
       const plans = (plansResult.results ?? []).map((r) => JSON.parse(r.data as string))
+      const activityLogs = (activityResult.results ?? []).map((r) => JSON.parse(r.data as string))
 
-      return json({ logs, plans })
+      return json({ logs, plans, activityLogs })
     }
   }
 

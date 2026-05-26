@@ -47,3 +47,11 @@ export interface UserPrefs {
   syncCode?: string
   lastSynced?: string
 }
+
+export interface ActivityLog {
+  id: string
+  activityType: string
+  durationMin: number
+  date: string
+  notes?: string
+}
