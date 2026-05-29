@@ -7,7 +7,7 @@ import WorkoutCard from '../components/WorkoutCard'
 import { featuredPlans, featuredMeta } from '../data/featuredPlans'
 import { exercises as allExercises, categoryColors } from '../data/exercises'
 import type { WorkoutPlan, ActivityLog } from '../types'
-import { fmtWeight } from '../lib/units'
+import { fmtWeight, fmtVolume } from '../lib/units'
 
 const ACTIVITY_TYPES = [
   { label: 'Pilates', emoji: '🩰' },
@@ -203,7 +203,7 @@ export default function Home() {
       <div style={{ display: 'flex', gap: 10, marginBottom: 28 }}>
         {[
           { label: 'This week', value: thisWeek, unit: 'workouts' },
-          { label: 'Volume', value: fmtWeight(weeklyVolumeKg, unit), unit: unit },
+          { label: 'Volume', value: fmtVolume(weeklyVolumeKg, unit), unit: unit },
           { label: 'Total', value: allLogs.length, unit: 'sessions' },
         ].map((stat) => (
           <div

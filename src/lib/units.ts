@@ -20,3 +20,20 @@ export function fmtWeight(kg: number, unit: 'kg' | 'lb'): string {
 export function unitLabel(unit: 'kg' | 'lb'): string {
   return unit
 }
+
+/**
+ * Format a volume value (stored in kg) for display.
+ * Converts to the user's unit first, then applies compact notation:
+ *   < 1 000        → exact integer   e.g. 850
+ *   1 k – 99 999   → 1 decimal, trailing .0 trimmed   e.g. 1.5k, 16.9k, 12k
+ *   100 000+       → no decimal   e.g. 145k
+ */
+export function fmtVolume(kg: number, unit: 'kg' | 'lb'): string {
+  const val = unit === 'lb' ? kg * KG_TO_LB : kg
+  if (val < 1000) return String(Math.round(val))
+  if (val < 100000) {
+    const k = (Math.round((val / 1000) * 10) / 10).toString()
+    return `${k}k`
+  }
+  return `${Math.round(val / 1000)}k`
+}
