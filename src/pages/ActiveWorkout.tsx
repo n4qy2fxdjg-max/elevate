@@ -6,7 +6,7 @@ import { exercises as allExercises } from '../data/exercises'
 import { featuredPlans } from '../data/featuredPlans'
 import { useWorkoutStore } from '../store/useWorkoutStore'
 import ProgressRing from '../components/ProgressRing'
-import { fmtWeight, weightStep } from '../lib/units'
+import { fmtWeight, weightStep, KG_TO_LB } from '../lib/units'
 
 const REST_SECONDS = 30
 
@@ -24,6 +24,23 @@ export default function ActiveWorkout() {
   const [exIdx, setExIdx] = useState(0)
   const [setIdx, setSetIdx] = useState(0)
   const [phase, setPhase] = useState<Phase>('exercise')
+  const [editingWeight, setEditingWeight] = useState(false)
+  const [editingWeightVal, setEditingWeightVal] = useState('')
+
+  function startEditWeight() {
+    const cur = exWeights[currentItem?.exerciseId ?? ''] ?? prefs.weightKg
+    setEditingWeightVal(fmtWeight(cur, unit))
+    setEditingWeight(true)
+  }
+
+  function commitEditWeight() {
+    const parsed = parseFloat(editingWeightVal)
+    if (!isNaN(parsed) && parsed >= 0 && currentItem) {
+      const inKg = unit === 'lb' ? parsed / KG_TO_LB : parsed
+      setExWeights((prev) => ({ ...prev, [currentItem.exerciseId]: Math.max(0, parseFloat(inKg.toFixed(4))) }))
+    }
+    setEditingWeight(false)
+  }
   const [restRemaining, setRestRemaining] = useState(REST_SECONDS)
   const [exWeights, setExWeights] = useState<Record<string, number>>(() =>
     Object.fromEntries(
@@ -106,6 +123,7 @@ export default function ActiveWorkout() {
 
   function completeSet() {
     if (!plan || !currentItem) return
+    setEditingWeight(false)
     const isLastSet = setIdx + 1 >= currentItem.sets
     const isLastEx = exIdx + 1 >= plan.exercises.length
 
@@ -374,17 +392,28 @@ export default function ActiveWorkout() {
                   −
                 </button>
                 <div style={{ flex: 1, textAlign: 'center' }}>
-                  <span
-                    style={{
-                      fontFamily: '"Cormorant Garamond", Georgia, serif',
-                      fontSize: 24,
-                      fontWeight: 300,
-                      color: '#FAF7F2',
-                    }}
-                  >
-                    {fmtWeight(exWeights[currentItem!.exerciseId] ?? prefs.weightKg, unit)}
-                  </span>
-                  <span style={{ fontSize: 11, color: '#C4A882', marginLeft: 4 }}>{unit}</span>
+                  {editingWeight ? (
+                    <input
+                      autoFocus
+                      type="number"
+                      inputMode="decimal"
+                      value={editingWeightVal}
+                      onChange={(e) => setEditingWeightVal(e.target.value)}
+                      onBlur={commitEditWeight}
+                      onKeyDown={(e) => e.key === 'Enter' && commitEditWeight()}
+                      style={{ width: 72, textAlign: 'center', fontFamily: '"Cormorant Garamond", Georgia, serif', fontSize: 24, fontWeight: 300, color: '#3A2E28', background: 'rgba(255,255,255,0.9)', border: 'none', borderRadius: 8, padding: '4px 8px', outline: 'none' }}
+                    />
+                  ) : (
+                    <span
+                      onClick={startEditWeight}
+                      style={{ cursor: 'text', borderBottom: '1px dashed rgba(196,168,130,0.5)', paddingBottom: 2 }}
+                    >
+                      <span style={{ fontFamily: '"Cormorant Garamond", Georgia, serif', fontSize: 24, fontWeight: 300, color: '#FAF7F2' }}>
+                        {fmtWeight(exWeights[currentItem!.exerciseId] ?? prefs.weightKg, unit)}
+                      </span>
+                      <span style={{ fontSize: 11, color: '#C4A882', marginLeft: 4 }}>{unit}</span>
+                    </span>
+                  )}
                 </div>
                 <button
                   onClick={() => adjustExWeight(currentItem!.exerciseId, weightStep(unit))}

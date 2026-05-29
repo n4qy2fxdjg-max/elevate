@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useWorkoutStore } from '../store/useWorkoutStore'
 import type { ActivityLog, WorkoutLog } from '../types'
-import { fmtWeight, weightStep } from '../lib/units'
+import { fmtWeight, weightStep, KG_TO_LB } from '../lib/units'
 import { exercises as allExercises } from '../data/exercises'
 
 const ACTIVITY_EMOJI: Record<string, string> = {
@@ -43,6 +43,22 @@ export default function Progress() {
   const allDates = [...logs.map(l => ({ date: l.date })), ...activityLogs.map(l => ({ date: l.date }))]
   const streak = getWeekStreak(allDates)
   const [detailLog, setDetailLog] = useState<WorkoutLog | null>(null)
+  const [editingAnkleWeight, setEditingAnkleWeight] = useState(false)
+  const [editingAnkleVal, setEditingAnkleVal] = useState('')
+
+  function startEditAnkle() {
+    setEditingAnkleVal(fmtWeight(prefs.weightKg, unit))
+    setEditingAnkleWeight(true)
+  }
+
+  function commitAnkle() {
+    const parsed = parseFloat(editingAnkleVal)
+    if (!isNaN(parsed) && parsed > 0) {
+      const inKg = unit === 'lb' ? parsed / KG_TO_LB : parsed
+      setPrefs({ weightKg: Math.max(0.01, parseFloat(inKg.toFixed(4))) })
+    }
+    setEditingAnkleWeight(false)
+  }
 
   const heatmap = useMemo(() => {
     const weeks = 12
@@ -249,17 +265,25 @@ export default function Progress() {
             −
           </motion.button>
           <div style={{ flex: 1, textAlign: 'center' }}>
-            <div
-              style={{
-                fontFamily: '"Cormorant Garamond", Georgia, serif',
-                fontSize: 36,
-                fontWeight: 300,
-                color: '#3A2E28',
-                lineHeight: 1,
-              }}
-            >
-              {fmtWeight(prefs.weightKg, unit)}
-            </div>
+            {editingAnkleWeight ? (
+              <input
+                autoFocus
+                type="number"
+                inputMode="decimal"
+                value={editingAnkleVal}
+                onChange={(e) => setEditingAnkleVal(e.target.value)}
+                onBlur={commitAnkle}
+                onKeyDown={(e) => e.key === 'Enter' && commitAnkle()}
+                style={{ width: 80, textAlign: 'center', fontFamily: '"Cormorant Garamond", Georgia, serif', fontSize: 36, fontWeight: 300, color: '#3A2E28', background: '#FAF7F2', border: '1px solid rgba(196,168,130,0.4)', borderRadius: 10, padding: '4px 8px', outline: 'none' }}
+              />
+            ) : (
+              <div
+                onClick={startEditAnkle}
+                style={{ fontFamily: '"Cormorant Garamond", Georgia, serif', fontSize: 36, fontWeight: 300, color: '#3A2E28', lineHeight: 1, cursor: 'text', borderBottom: '1px dashed rgba(196,168,130,0.4)', paddingBottom: 2 }}
+              >
+                {fmtWeight(prefs.weightKg, unit)}
+              </div>
+            )}
             <div style={{ fontSize: 12, color: '#C4A882', marginTop: 2 }}>{unit} per wrist</div>
           </div>
           <motion.button

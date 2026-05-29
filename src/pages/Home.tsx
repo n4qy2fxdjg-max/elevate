@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useWorkoutStore } from '../store/useWorkoutStore'
 import WorkoutCard from '../components/WorkoutCard'
-import { featuredPlans, featuredMeta } from '../data/featuredPlans'
+import { featuredPlans } from '../data/featuredPlans'
 import { exercises as allExercises, categoryColors } from '../data/exercises'
 import type { WorkoutPlan, ActivityLog } from '../types'
 import { fmtWeight, fmtVolume } from '../lib/units'
@@ -285,149 +285,9 @@ export default function Home() {
           <span style={{ fontSize: 12, color: '#C4A882', fontStyle: 'italic' }}>curated for you</span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {featuredPlans.map((plan) => {
-            const meta = featuredMeta[plan.id]
-            const totalSets = plan.exercises.reduce((s, e) => s + e.sets, 0)
-            const estMinutes = Math.round(totalSets * 0.8)
-            // unique muscle categories
-            const categories = [...new Set(
-              plan.exercises.map((e) => allExercises.find((ex) => ex.id === e.exerciseId)?.category).filter(Boolean)
-            )] as string[]
-            return (
-              <motion.div
-                key={plan.id}
-                whileTap={{ scale: 0.985 }}
-                style={{
-                  background: '#fff',
-                  borderRadius: 24,
-                  overflow: 'hidden',
-                  boxShadow: '0 2px 16px rgba(58,46,40,0.08)',
-                  border: '1px solid rgba(196,168,130,0.18)',
-                }}
-              >
-                {/* accent strip */}
-                <div style={{ height: 4, background: meta.accentBg }} />
-                <div style={{ padding: '18px 20px 16px' }}>
-                  {/* badge */}
-                  <div style={{ marginBottom: 10 }}>
-                    <span
-                      style={{
-                        background: meta.accentBg,
-                        color: meta.accentText,
-                        borderRadius: 8,
-                        padding: '3px 9px',
-                        fontSize: 10,
-                        fontWeight: 600,
-                        letterSpacing: 0.6,
-                        textTransform: 'uppercase',
-                      }}
-                    >
-                      Featured
-                    </span>
-                  </div>
-                  {/* name */}
-                  <div
-                    style={{
-                      fontFamily: '"Cormorant Garamond", Georgia, serif',
-                      fontSize: 26,
-                      fontWeight: 500,
-                      color: '#3A2E28',
-                      lineHeight: 1.15,
-                      marginBottom: 6,
-                    }}
-                  >
-                    {plan.name}
-                  </div>
-                  {/* subtitle */}
-                  <p
-                    style={{
-                      fontSize: 13,
-                      color: '#7A6458',
-                      margin: '0 0 12px',
-                      lineHeight: 1.45,
-                      fontStyle: 'italic',
-                    }}
-                  >
-                    {meta.subtitle}
-                  </p>
-                  {/* meta row */}
-                  <div style={{ fontSize: 12, color: '#C4A882', marginBottom: 12 }}>
-                    {plan.exercises.length} exercises · ~{estMinutes} min
-                  </div>
-                  {/* muscle chips */}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 16 }}>
-                    {categories.slice(0, 4).map((cat) => (
-                      <span
-                        key={cat}
-                        style={{
-                          background: categoryColors[cat]?.bg ?? '#F0EAE0',
-                          color: categoryColors[cat]?.text ?? '#7A6458',
-                          borderRadius: 7,
-                          padding: '3px 8px',
-                          fontSize: 11,
-                          fontWeight: 500,
-                          textTransform: 'capitalize',
-                        }}
-                      >
-                        {cat}
-                      </span>
-                    ))}
-                    {categories.length > 4 && (
-                      <span
-                        style={{
-                          background: '#F0EAE0',
-                          color: '#7A6458',
-                          borderRadius: 7,
-                          padding: '3px 8px',
-                          fontSize: 11,
-                        }}
-                      >
-                        +{categories.length - 4}
-                      </span>
-                    )}
-                  </div>
-                  {/* start button */}
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <motion.button
-                      whileTap={{ scale: 0.94 }}
-                      onClick={() => setViewingPlan(plan)}
-                      style={{
-                        flex: '0 0 auto',
-                        background: '#F0EAE0',
-                        color: '#7A6458',
-                        border: 'none',
-                        borderRadius: 14,
-                        padding: '13px 16px',
-                        fontSize: 14,
-                        cursor: 'pointer',
-                        fontFamily: '"DM Sans", system-ui, sans-serif',
-                      }}
-                    >
-                      View
-                    </motion.button>
-                    <motion.button
-                      whileTap={{ scale: 0.94 }}
-                      onClick={() => handleStart(plan)}
-                      style={{
-                        flex: 1,
-                        background: '#3A2E28',
-                        color: '#FAF7F2',
-                        border: 'none',
-                        borderRadius: 14,
-                        padding: '13px',
-                        fontSize: 15,
-                        fontWeight: 500,
-                        cursor: 'pointer',
-                        fontFamily: '"DM Sans", system-ui, sans-serif',
-                      }}
-                    >
-                      Start Workout
-                    </motion.button>
-                  </div>
-                </div>
-              </motion.div>
-            )
-          })}
+          {featuredPlans.map((plan) => (
+            <WorkoutCard key={plan.id} plan={plan} onStart={handleStart} onTap={setViewingPlan} />
+          ))}
         </div>
       </div>
 

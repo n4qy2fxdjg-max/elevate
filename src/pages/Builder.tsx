@@ -7,7 +7,7 @@ import { exercises as allExercises, categoryColors } from '../data/exercises'
 import { BODY_GROUPS, GROUP_CATS, type BodyGroup } from '../data/categories'
 import { useWorkoutStore } from '../store/useWorkoutStore'
 import type { MuscleCategory } from '../types'
-import { fmtWeight, weightStep } from '../lib/units'
+import { fmtWeight, weightStep, KG_TO_LB } from '../lib/units'
 
 interface BuilderItem {
   uid: string
@@ -50,6 +50,24 @@ export default function Builder() {
   const groupCats = GROUP_CATS[bodyGroup]
   const [showPicker, setShowPicker] = useState(false)
   const [saved, setSaved] = useState(false)
+
+  // Tap-to-type weight
+  const [editingWeightUid, setEditingWeightUid] = useState<string | null>(null)
+  const [editingWeightVal, setEditingWeightVal] = useState('')
+
+  function startEditWeight(uid: string, kg: number) {
+    setEditingWeightUid(uid)
+    setEditingWeightVal(fmtWeight(kg, unit))
+  }
+
+  function commitWeight(uid: string) {
+    const parsed = parseFloat(editingWeightVal)
+    if (!isNaN(parsed) && parsed >= 0) {
+      const inKg = unit === 'lb' ? parsed / KG_TO_LB : parsed
+      setItems((prev) => prev.map((i) => i.uid === uid ? { ...i, weightKg: Math.max(0, parseFloat(inKg.toFixed(4))) } : i))
+    }
+    setEditingWeightUid(null)
+  }
 
   const filtered = allExercises.filter((e) => {
     if (!groupCats.includes(e.category)) return false
@@ -249,9 +267,27 @@ export default function Builder() {
                       >
                         −
                       </button>
-                      <div style={{ flex: 1, textAlign: 'center', fontSize: 14, fontWeight: 600, color: '#3A2E28' }}>
-                        {fmtWeight(item.weightKg, unit)}
-                        <span style={{ fontSize: 10, fontWeight: 400, color: '#C4A882', marginLeft: 3 }}>{unit}</span>
+                      <div style={{ flex: 1, textAlign: 'center' }}>
+                        {editingWeightUid === item.uid ? (
+                          <input
+                            autoFocus
+                            type="number"
+                            inputMode="decimal"
+                            value={editingWeightVal}
+                            onChange={(e) => setEditingWeightVal(e.target.value)}
+                            onBlur={() => commitWeight(item.uid)}
+                            onKeyDown={(e) => e.key === 'Enter' && commitWeight(item.uid)}
+                            style={{ width: 56, textAlign: 'center', fontSize: 14, fontWeight: 600, color: '#3A2E28', background: '#FAF7F2', border: '1px solid rgba(196,168,130,0.4)', borderRadius: 8, padding: '4px 6px', outline: 'none', fontFamily: '"DM Sans", system-ui, sans-serif' }}
+                          />
+                        ) : (
+                          <span
+                            onClick={() => startEditWeight(item.uid, item.weightKg)}
+                            style={{ fontSize: 14, fontWeight: 600, color: '#3A2E28', cursor: 'text', borderBottom: '1px dashed rgba(196,168,130,0.5)', paddingBottom: 1 }}
+                          >
+                            {fmtWeight(item.weightKg, unit)}
+                            <span style={{ fontSize: 10, fontWeight: 400, color: '#C4A882', marginLeft: 3 }}>{unit}</span>
+                          </span>
+                        )}
                       </div>
                       <button
                         onClick={() => adjustWeight(item.uid, weightStep(unit))}

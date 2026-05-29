@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useWorkoutStore } from '../store/useWorkoutStore'
 import { createSyncCode, verifySyncCode, pushSync } from '../lib/syncApi'
-import { fmtWeight, weightStep } from '../lib/units'
+import { fmtWeight, weightStep, KG_TO_LB } from '../lib/units'
 
 type SyncView = 'idle' | 'creating' | 'joining' | 'active'
 
@@ -19,6 +19,22 @@ export default function Settings() {
   // Profile state
   const [nameInput, setNameInput] = useState(prefs.name)
   const unit = prefs.unit ?? 'kg'
+  const [editingWeight, setEditingWeight] = useState(false)
+  const [editingWeightVal, setEditingWeightVal] = useState('')
+
+  function startEditWeight() {
+    setEditingWeightVal(fmtWeight(prefs.weightKg, unit))
+    setEditingWeight(true)
+  }
+
+  function commitWeight() {
+    const parsed = parseFloat(editingWeightVal)
+    if (!isNaN(parsed) && parsed > 0) {
+      const inKg = unit === 'lb' ? parsed / KG_TO_LB : parsed
+      setPrefs({ weightKg: Math.max(0.01, parseFloat(inKg.toFixed(4))) })
+    }
+    setEditingWeight(false)
+  }
 
   async function handleCreate() {
     setLoading(true)
@@ -187,9 +203,25 @@ export default function Settings() {
               }}
               style={stepperBtn}
             >−</motion.button>
-            <span style={{ fontSize: 18, fontWeight: 500, color: '#3A2E28', minWidth: 64, textAlign: 'center' }}>
-              {fmtWeight(prefs.weightKg, unit)} {unit}
-            </span>
+            {editingWeight ? (
+              <input
+                autoFocus
+                type="number"
+                inputMode="decimal"
+                value={editingWeightVal}
+                onChange={(e) => setEditingWeightVal(e.target.value)}
+                onBlur={commitWeight}
+                onKeyDown={(e) => e.key === 'Enter' && commitWeight()}
+                style={{ width: 72, textAlign: 'center', fontSize: 18, fontWeight: 500, color: '#3A2E28', background: '#FAF7F2', border: '1px solid rgba(196,168,130,0.4)', borderRadius: 10, padding: '6px 8px', outline: 'none', fontFamily: '"DM Sans", system-ui, sans-serif' }}
+              />
+            ) : (
+              <span
+                onClick={startEditWeight}
+                style={{ fontSize: 18, fontWeight: 500, color: '#3A2E28', minWidth: 64, textAlign: 'center', cursor: 'text', borderBottom: '1px dashed rgba(196,168,130,0.5)', paddingBottom: 1 }}
+              >
+                {fmtWeight(prefs.weightKg, unit)} {unit}
+              </span>
+            )}
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => {

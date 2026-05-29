@@ -2,8 +2,8 @@ export const KG_TO_LB = 2.20462
 
 /** Step size in kg for the weight steppers */
 export function weightStep(unit: 'kg' | 'lb'): number {
-  // 0.25 kg  or  0.5 lb (stored as kg)
-  return unit === 'lb' ? 0.5 / KG_TO_LB : 0.25
+  // 0.5 kg  or  1 lb (stored as kg)
+  return unit === 'lb' ? 1 / KG_TO_LB : 0.5
 }
 
 /** Display a kg value in the user's preferred unit */
