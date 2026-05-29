@@ -12,7 +12,7 @@ const REST_SECONDS = 30
 
 const HAB_MESSAGES = [
   "Watching you show up every day is my favourite thing in the world. I love you so much.",
-  "You just made me the proudest husband alive. That's my girl.",
+  "You just made me the proudest man alive. That's my girl.",
   "I know how hard that was, and you did it anyway. That's exactly who you are.",
   "Every bit of strength you build, you already had it in you. I just get to watch it come out.",
   "You are genuinely the most impressive person I know. I mean that.",
@@ -20,13 +20,12 @@ const HAB_MESSAGES = [
   "That looked incredible from where I'm standing. Never stop.",
   "My love, you are unstoppable. I hope you know it as clearly as I do.",
   "I fell in love with you for a thousand reasons, and this is one of them.",
-  "Seeing you push through that makes me love you even more — I didn't think that was possible.",
+  "Every time I think I couldn't love you more, you go and do something like this.",
   "You're building something beautiful, inside and out. I'm so lucky to be yours.",
   "Rest, eat something, and let me tell you how amazing you are when you get home.",
-  "You finished. That's not nothing — that's everything. So proud of you.",
-  "The discipline you have is extraordinary. One day you'll see yourself the way I see you.",
+  "You showed up, you pushed through, and you finished. That's who you are, my love.",
+  "The way you commit to yourself quietly, without needing anyone to notice — I notice. Always.",
   "I just want you to know that I notice every single session. It matters. You matter.",
-  "Strong, elegant, and completely my favourite human. Nice work today, habibti.",
   "Whatever you're working towards, you're closer today than yesterday. Keep going, my love.",
   "No one puts in the work quietly like you do. I see you, always.",
 ]
@@ -257,7 +256,7 @@ export default function ActiveWorkout() {
           }}>
             "{habMessage}"
           </p>
-          <span style={{ fontSize: 13, color: '#C4A882', letterSpacing: 0.5 }}>— Hab 🤍</span>
+          <span style={{ fontSize: 13, color: '#C4A882', letterSpacing: 0.5 }}>— your Hab</span>
         </motion.div>
 
         {/* PR celebration */}
