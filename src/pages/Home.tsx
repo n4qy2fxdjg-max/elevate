@@ -191,12 +191,13 @@ export default function Home() {
                 marginTop: 20,
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ width: 14 }} />
+                <span style={{ fontSize: 22, fontWeight: 700, color: '#3A2E28', lineHeight: 1 }}>{streak}</span>
                 <svg width="14" height="16" viewBox="0 0 14 18" fill="none">
                   <path d="M7 0C7 0 4 4 4 7C4 7 2.5 5.5 3 3C1 5 0 7.5 0 10C0 14.4183 3.13401 18 7 18C10.866 18 14 14.4183 14 10C14 6 11 3 9.5 4.5C10 2.5 7 0 7 0Z" fill="#C8860A"/>
                   <path d="M7 7C7 7 5.5 9 5.5 11C5.5 11 4.5 10 4.8 8.5C3.8 9.5 3.5 10.5 3.5 11.5C3.5 13.4330 5.067 15 7 15C8.933 15 10.5 13.4330 10.5 11.5C10.5 9.5 8.5 7.5 8 8.5C8.5 7 7 7 7 7Z" fill="#F5C518"/>
                 </svg>
-                <span style={{ fontSize: 22, fontWeight: 700, color: '#3A2E28', lineHeight: 1 }}>{streak}</span>
               </div>
               <div style={{ fontSize: 10, color: '#7A3020', fontWeight: 500, marginTop: 2 }}>week streak</div>
             </motion.div>
