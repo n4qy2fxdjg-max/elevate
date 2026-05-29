@@ -10,6 +10,7 @@ interface WorkoutStore {
   prefs: UserPrefs
   activePlanId: string | null
   addPlan: (plan: WorkoutPlan) => void
+  updatePlan: (plan: WorkoutPlan) => void
   deletePlan: (id: string) => void
   addLog: (log: WorkoutLog) => void
   deleteLog: (id: string) => void
@@ -39,6 +40,10 @@ export const useWorkoutStore = create<WorkoutStore>()(
 
       addPlan: (plan) => {
         set((s) => ({ plans: [...s.plans, plan] }))
+        autoPush(get)
+      },
+      updatePlan: (plan) => {
+        set((s) => ({ plans: s.plans.map((p) => (p.id === plan.id ? plan : p)) }))
         autoPush(get)
       },
       deletePlan: (id) => {

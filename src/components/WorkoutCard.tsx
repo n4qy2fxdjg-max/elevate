@@ -6,9 +6,10 @@ interface WorkoutCardProps {
   plan: WorkoutPlan
   onStart?: (plan: WorkoutPlan) => void
   onDelete?: (id: string) => void
+  onTap?: (plan: WorkoutPlan) => void
 }
 
-export default function WorkoutCard({ plan, onStart, onDelete }: WorkoutCardProps) {
+export default function WorkoutCard({ plan, onStart, onDelete, onTap }: WorkoutCardProps) {
   const totalSets = plan.exercises.reduce((s, e) => s + e.sets, 0)
   const estMinutes = Math.round(totalSets * 0.8)
 
@@ -20,12 +21,14 @@ export default function WorkoutCard({ plan, onStart, onDelete }: WorkoutCardProp
   return (
     <motion.div
       whileTap={{ scale: 0.98 }}
+      onClick={() => onTap?.(plan)}
       style={{
         background: 'linear-gradient(135deg, #fff 0%, #FAF7F2 100%)',
         borderRadius: 24,
         padding: '20px 20px 16px',
         boxShadow: '0 2px 12px rgba(58,46,40,0.08)',
         border: '1px solid rgba(196,168,130,0.2)',
+        cursor: onTap ? 'pointer' : 'default',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
@@ -79,7 +82,7 @@ export default function WorkoutCard({ plan, onStart, onDelete }: WorkoutCardProp
         {onStart && (
           <motion.button
             whileTap={{ scale: 0.94 }}
-            onClick={() => onStart(plan)}
+            onClick={(e) => { e.stopPropagation(); onStart(plan) }}
             style={{
               flex: 1,
               background: '#3A2E28',
@@ -99,7 +102,7 @@ export default function WorkoutCard({ plan, onStart, onDelete }: WorkoutCardProp
         {onDelete && (
           <motion.button
             whileTap={{ scale: 0.94 }}
-            onClick={() => onDelete(plan.id)}
+            onClick={(e) => { e.stopPropagation(); onDelete(plan.id) }}
             style={{
               background: '#F0EAE0',
               color: '#7A6458',

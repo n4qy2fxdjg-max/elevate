@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence, Reorder } from 'framer-motion'
 import { nanoid } from 'nanoid'
 import { exercises as allExercises, categoryColors } from '../data/exercises'
@@ -17,13 +17,28 @@ interface BuilderItem {
   weightKg: number
 }
 
-
 export default function Builder() {
   const navigate = useNavigate()
-  const { plans, addPlan, prefs } = useWorkoutStore()
+  const [searchParams] = useSearchParams()
+  const editPlanId = searchParams.get('edit')
+  const { plans, addPlan, updatePlan, prefs } = useWorkoutStore()
   const unit = prefs.unit ?? 'kg'
-  const [name, setName] = useState('')
-  const [items, setItems] = useState<BuilderItem[]>([])
+
+  // Pre-populate when editing an existing plan
+  const editingPlan = editPlanId ? plans.find((p) => p.id === editPlanId) : null
+  const [name, setName] = useState(editingPlan?.name ?? '')
+  const [items, setItems] = useState<BuilderItem[]>(
+    editingPlan?.exercises.map((e) => ({ uid: nanoid(), exerciseId: e.exerciseId, sets: e.sets, reps: e.reps, weightKg: e.weightKg ?? prefs.weightKg })) ?? []
+  )
+
+  // Re-populate if editingPlan loads after mount (shouldn't normally happen but guards against edge cases)
+  useEffect(() => {
+    if (editingPlan && items.length === 0 && name === '') {
+      setName(editingPlan.name)
+      setItems(editingPlan.exercises.map((e) => ({ uid: nanoid(), exerciseId: e.exerciseId, sets: e.sets, reps: e.reps, weightKg: e.weightKg ?? prefs.weightKg })))
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [bodyGroup, setBodyGroup] = useState<BodyGroup>('all')
   const [filter, setFilter] = useState<MuscleCategory | 'all'>('all')
 
@@ -74,12 +89,12 @@ export default function Builder() {
 
   function save() {
     if (!name.trim() || !items.length) return
-    addPlan({
-      id: nanoid(),
-      name: name.trim(),
-      exercises: items.map(({ exerciseId, sets, reps, weightKg }) => ({ exerciseId, sets, reps, weightKg })),
-      createdAt: new Date().toISOString(),
-    })
+    const exerciseList = items.map(({ exerciseId, sets, reps, weightKg }) => ({ exerciseId, sets, reps, weightKg }))
+    if (editingPlan) {
+      updatePlan({ ...editingPlan, name: name.trim(), exercises: exerciseList })
+    } else {
+      addPlan({ id: nanoid(), name: name.trim(), exercises: exerciseList, createdAt: new Date().toISOString() })
+    }
     setSaved(true)
     setTimeout(() => {
       setSaved(false)
@@ -314,7 +329,7 @@ export default function Builder() {
                 transition: 'background 0.2s',
               }}
             >
-              Save Routine
+              {editingPlan ? 'Update Routine' : 'Save Routine'}
             </motion.button>
           )}
         </AnimatePresence>

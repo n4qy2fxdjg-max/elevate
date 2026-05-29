@@ -1,8 +1,10 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useWorkoutStore } from '../store/useWorkoutStore'
-import type { ActivityLog } from '../types'
+import type { ActivityLog, WorkoutLog } from '../types'
 import { fmtWeight, weightStep } from '../lib/units'
+import { exercises as allExercises } from '../data/exercises'
 
 const ACTIVITY_EMOJI: Record<string, string> = {
   Pilates: '🩰', Squash: '🎾', Yoga: '🧘', Running: '🏃',
@@ -10,27 +12,28 @@ const ACTIVITY_EMOJI: Record<string, string> = {
   Gym: '💪', Dance: '💃', Hiking: '🥾', Other: '✏️',
 }
 
-function isoToDate(iso: string) {
-  return new Date(iso)
-}
+function isoToDate(iso: string) { return new Date(iso) }
 
 function sameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 }
 
-function getStreak(logs: { date: string }[]) {
+function weekKey(date: Date): string {
+  const d = new Date(date)
+  d.setHours(0, 0, 0, 0)
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7))
+  return `${d.getFullYear()}-${String(Math.ceil((((d.getTime() - new Date(d.getFullYear(), 0, 1).getTime()) / 86400000) + 1) / 7)).padStart(2, '0')}`
+}
+
+function getWeekStreak(logs: { date: string }[]): number {
   if (!logs.length) return 0
-  const today = new Date()
-  const dates = [...new Set(logs.map((l) => new Date(l.date).toDateString()))]
+  const activeWeeks = new Set(logs.map((l) => weekKey(new Date(l.date))))
   let streak = 0
-  let check = new Date()
-  if (!dates.includes(today.toDateString())) check.setDate(check.getDate() - 1)
-  while (true) {
-    if (dates.includes(check.toDateString())) {
-      streak++
-      check.setDate(check.getDate() - 1)
-    } else break
-  }
+  const check = new Date()
+  check.setDate(check.getDate() - ((check.getDay() + 6) % 7))
+  if (!activeWeeks.has(weekKey(check))) check.setDate(check.getDate() - 7)
+  const cur = new Date(check)
+  while (activeWeeks.has(weekKey(cur))) { streak++; cur.setDate(cur.getDate() - 7) }
   return streak
 }
 
@@ -38,7 +41,8 @@ export default function Progress() {
   const { logs, activityLogs, prefs, setPrefs, deleteLog, deleteActivityLog } = useWorkoutStore()
   const unit = prefs.unit ?? 'kg'
   const allDates = [...logs.map(l => ({ date: l.date })), ...activityLogs.map(l => ({ date: l.date }))]
-  const streak = getStreak(allDates)
+  const streak = getWeekStreak(allDates)
+  const [detailLog, setDetailLog] = useState<WorkoutLog | null>(null)
 
   const heatmap = useMemo(() => {
     const weeks = 12
@@ -106,7 +110,7 @@ export default function Progress() {
       {/* Big stats */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 24 }}>
         {[
-          { value: streak, label: 'Day Streak', accent: true },
+          { value: streak, label: 'Week Streak', accent: true },
           { value: thisWeekLogs.length, label: 'This Week' },
           { value: totalMinutes, label: 'Total Minutes' },
           { value: logs.filter((l) => l.completed).length + activityLogs.length, label: 'Completed' },
@@ -283,7 +287,7 @@ export default function Progress() {
       {/* History — workouts + activity logs merged */}
       {(logs.length > 0 || activityLogs.length > 0) && (() => {
         type HistoryItem =
-          | { kind: 'workout'; id: string; label: string; date: string; sub: string; tag: string; green: boolean }
+          | { kind: 'workout'; id: string; label: string; date: string; sub: string; tag: string; green: boolean; prCount: number }
           | { kind: 'activity'; id: string; label: string; date: string; sub: string; notes?: string }
 
         const items: HistoryItem[] = [
@@ -293,6 +297,7 @@ export default function Progress() {
             sub: `${Math.round(l.durationSec / 60)} min`,
             tag: l.completed ? 'Done' : 'Partial',
             green: l.completed,
+            prCount: l.prs?.length ?? 0,
           })),
           ...activityLogs.map((l: ActivityLog) => ({
             kind: 'activity' as const, id: l.id,
@@ -300,7 +305,7 @@ export default function Progress() {
             sub: `${l.durationMin} min`,
             notes: l.notes,
           })),
-        ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 15)
+        ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 20)
 
         return (
           <div>
@@ -316,6 +321,12 @@ export default function Progress() {
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                    onClick={() => {
+                      if (item.kind === 'workout') {
+                        const log = logs.find(l => l.id === item.id)
+                        if (log) setDetailLog(log)
+                      }
+                    }}
                     style={{
                       background: item.kind === 'activity' ? '#FDF5F0' : '#fff',
                       borderRadius: 16,
@@ -324,16 +335,21 @@ export default function Progress() {
                       justifyContent: 'space-between',
                       alignItems: 'center',
                       border: '1px solid ' + (item.kind === 'activity' ? 'rgba(242,196,176,0.3)' : 'rgba(196,168,130,0.12)'),
+                      cursor: item.kind === 'workout' ? 'pointer' : 'default',
                     }}
                   >
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         {item.kind === 'activity' && (
-                          <span style={{ fontSize: 13 }}>
-                            {ACTIVITY_EMOJI[item.label] ?? '🏃'}
-                          </span>
+                          <span style={{ fontSize: 13 }}>{ACTIVITY_EMOJI[item.label] ?? '🏃'}</span>
                         )}
                         <div style={{ fontSize: 15, fontWeight: 500, color: '#3A2E28' }}>{item.label}</div>
+                        {item.kind === 'workout' && item.prCount > 0 && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 3, background: '#FFF3CD', borderRadius: 6, padding: '2px 6px' }}>
+                            <span style={{ fontSize: 10 }}>⭐</span>
+                            <span style={{ fontSize: 10, fontWeight: 700, color: '#8B6914' }}>{item.prCount} PR</span>
+                          </div>
+                        )}
                       </div>
                       <div style={{ fontSize: 12, color: '#C4A882', marginTop: 2 }}>
                         {new Date(item.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
@@ -358,7 +374,7 @@ export default function Progress() {
                       </div>
                       <motion.button
                         whileTap={{ scale: 0.88 }}
-                        onClick={() => item.kind === 'workout' ? deleteLog(item.id) : deleteActivityLog(item.id)}
+                        onClick={(e) => { e.stopPropagation(); item.kind === 'workout' ? deleteLog(item.id) : deleteActivityLog(item.id) }}
                         style={{ width: 30, height: 30, background: '#F0EAE0', border: 'none', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16, color: '#B09080', flexShrink: 0 }}
                       >
                         ×
@@ -397,6 +413,88 @@ export default function Progress() {
             Complete your first session and your progress will appear here.
           </p>
         </div>
+      )}
+
+      {/* Workout Detail Sheet */}
+      {createPortal(
+        <AnimatePresence>
+          {detailLog && (
+            <>
+              <motion.div key="bd" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onClick={() => setDetailLog(null)}
+                style={{ position: 'fixed', inset: 0, background: 'rgba(58,46,40,0.4)', zIndex: 1000 }} />
+              <motion.div key="sh" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                style={{
+                  position: 'fixed', bottom: 0, left: 0, right: 0, margin: '0 auto',
+                  width: '100%', maxWidth: 430, background: '#FAF7F2',
+                  borderRadius: '28px 28px 0 0', padding: '28px 24px',
+                  paddingBottom: 'max(32px, calc(env(safe-area-inset-bottom) + 16px))',
+                  zIndex: 1001, maxHeight: '88svh', overflowY: 'auto', WebkitOverflowScrolling: 'touch',
+                }}
+              >
+                <div style={{ width: 36, height: 4, background: '#E8D8C4', borderRadius: 2, margin: '0 auto 24px' }} />
+
+                {/* Header */}
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                    <h2 style={{ fontFamily: '"Cormorant Garamond", Georgia, serif', fontSize: 26, fontWeight: 500, color: '#3A2E28', margin: 0 }}>
+                      {detailLog.planName}
+                    </h2>
+                    {(detailLog.prs?.length ?? 0) > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 3, background: '#FFF3CD', borderRadius: 8, padding: '4px 8px' }}>
+                        <span style={{ fontSize: 12 }}>🏆</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#8B6914' }}>{detailLog.prs!.length} PR</span>
+                      </div>
+                    )}
+                  </div>
+                  <p style={{ fontSize: 13, color: '#C4A882', margin: 0 }}>
+                    {new Date(detailLog.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                    {' · '}{Math.round(detailLog.durationSec / 60)} min
+                  </p>
+                </div>
+
+                {/* Exercise list */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+                  {(detailLog.exercises ?? []).map((perf) => {
+                    const ex = allExercises.find((e) => e.id === perf.exerciseId)
+                    if (!ex) return null
+                    const isPR = detailLog.prs?.includes(perf.exerciseId)
+                    return (
+                      <div key={perf.exerciseId} style={{
+                        background: isPR ? '#FFFBEF' : '#fff',
+                        borderRadius: 14, padding: '12px 16px',
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        border: '1px solid ' + (isPR ? 'rgba(255,215,0,0.3)' : 'rgba(196,168,130,0.12)'),
+                      }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontSize: 14, fontWeight: 500, color: '#3A2E28' }}>{ex.name}</span>
+                            {isPR && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 2, background: '#FFF3CD', borderRadius: 5, padding: '1px 5px' }}>
+                                <span style={{ fontSize: 9 }}>⭐</span>
+                                <span style={{ fontSize: 9, fontWeight: 700, color: '#8B6914' }}>PR</span>
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 12, color: '#C4A882', marginTop: 2 }}>
+                            {fmtWeight(perf.weightKg, unit)} {unit}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <motion.button whileTap={{ scale: 0.96 }} onClick={() => setDetailLog(null)}
+                  style={{ width: '100%', background: '#3A2E28', color: '#FAF7F2', border: 'none', borderRadius: 16, padding: '14px', fontSize: 15, fontWeight: 500, cursor: 'pointer', fontFamily: '"DM Sans", system-ui, sans-serif' }}>
+                  Close
+                </motion.button>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body
       )}
     </div>
   )

@@ -39,6 +39,7 @@ export interface WorkoutLog {
   durationSec: number
   completed: boolean
   exercises?: ExercisePerformance[]
+  prs?: string[]          // exerciseIds that set a personal record this session
 }
 
 export interface UserPrefs {

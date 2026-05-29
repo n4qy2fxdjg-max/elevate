@@ -14,7 +14,7 @@ type Phase = 'exercise' | 'rest' | 'done'
 
 export default function ActiveWorkout() {
   const navigate = useNavigate()
-  const { plans, activePlanId, addLog, setActivePlanId, prefs } = useWorkoutStore()
+  const { plans, logs, activePlanId, addLog, setActivePlanId, prefs } = useWorkoutStore()
   const unit = prefs.unit ?? 'kg'
   const plan = plans.find((p) => p.id === activePlanId) ?? featuredPlans.find((p) => p.id === activePlanId)
 
@@ -52,6 +52,22 @@ export default function ActiveWorkout() {
   const finishWorkout = useCallback(
     (completed: boolean) => {
       if (timerRef.current) clearInterval(timerRef.current)
+      const exercises = plan?.exercises.map((e) => ({
+        exerciseId: e.exerciseId,
+        weightKg: exWeights[e.exerciseId] ?? prefs.weightKg,
+      })) ?? []
+
+      // Detect PRs: compare current weight vs all-time max from prior logs
+      const prs = exercises
+        .filter(({ exerciseId, weightKg }) => {
+          const historicalMax = logs
+            .flatMap((l) => l.exercises ?? [])
+            .filter((ex) => ex.exerciseId === exerciseId)
+            .reduce((max, ex) => Math.max(max, ex.weightKg), 0)
+          return weightKg > historicalMax
+        })
+        .map((e) => e.exerciseId)
+
       addLog({
         id: nanoid(),
         planId: activePlanId ?? '',
@@ -59,15 +75,13 @@ export default function ActiveWorkout() {
         date: new Date().toISOString(),
         durationSec: Math.round((Date.now() - startTime.current) / 1000),
         completed,
-        exercises: plan?.exercises.map((e) => ({
-          exerciseId: e.exerciseId,
-          weightKg: exWeights[e.exerciseId] ?? prefs.weightKg,
-        })),
+        exercises,
+        prs,
       })
       setActivePlanId(null)
       navigate('/')
     },
-    [activePlanId, addLog, exWeights, navigate, plan, prefs.weightKg, setActivePlanId]
+    [activePlanId, addLog, exWeights, logs, navigate, plan, prefs.weightKg, setActivePlanId]
   )
 
   useEffect(() => {
@@ -116,6 +130,16 @@ export default function ActiveWorkout() {
   if (!plan || !currentEx) return null
 
   if (phase === 'done') {
+    // Compute PRs for the celebration screen
+    const sessionPRs = plan.exercises.filter(({ exerciseId }) => {
+      const current = exWeights[exerciseId] ?? prefs.weightKg
+      const histMax = logs
+        .flatMap((l) => l.exercises ?? [])
+        .filter((ex) => ex.exerciseId === exerciseId)
+        .reduce((m, ex) => Math.max(m, ex.weightKg), 0)
+      return current > histMax
+    })
+
     return (
       <motion.div
         initial={{ opacity: 0 }}
@@ -166,9 +190,43 @@ export default function ActiveWorkout() {
         <p style={{ fontSize: 15, color: '#C4A882', margin: '0 0 12px', textAlign: 'center' }}>
           {plan.name} complete
         </p>
-        <p style={{ fontSize: 14, color: '#E8D8C4', margin: '0 0 48px', textAlign: 'center' }}>
+        <p style={{ fontSize: 14, color: '#E8D8C4', margin: '0 0 24px', textAlign: 'center' }}>
           {Math.round((Date.now() - startTime.current) / 60000)} minutes · {totalSets} sets
         </p>
+
+        {/* PR celebration */}
+        {sessionPRs.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            style={{
+              background: 'rgba(242,196,176,0.15)',
+              border: '1px solid rgba(242,196,176,0.35)',
+              borderRadius: 18,
+              padding: '16px 20px',
+              marginBottom: 32,
+              width: '100%',
+              maxWidth: 320,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <span style={{ fontSize: 20 }}>🏆</span>
+              <span style={{ fontSize: 16, fontWeight: 600, color: '#F2C4B0' }}>
+                {sessionPRs.length} Personal Record{sessionPRs.length > 1 ? 's' : ''}!
+              </span>
+            </div>
+            {sessionPRs.map(({ exerciseId }) => {
+              const ex = allExercises.find((e) => e.id === exerciseId)
+              return (
+                <div key={exerciseId} style={{ fontSize: 13, color: '#E8D8C4', marginTop: 4 }}>
+                  ⭐ {ex?.name}
+                </div>
+              )
+            })}
+          </motion.div>
+        )}
+        {sessionPRs.length === 0 && <div style={{ marginBottom: 48 }} />}
         <motion.button
           whileTap={{ scale: 0.96 }}
           onClick={() => finishWorkout(true)}

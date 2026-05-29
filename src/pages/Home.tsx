@@ -7,6 +7,7 @@ import WorkoutCard from '../components/WorkoutCard'
 import { featuredPlans, featuredMeta } from '../data/featuredPlans'
 import { exercises as allExercises, categoryColors } from '../data/exercises'
 import type { WorkoutPlan, ActivityLog } from '../types'
+import { fmtWeight } from '../lib/units'
 
 const ACTIVITY_TYPES = [
   { label: 'Pilates', emoji: '🩰' },
@@ -30,27 +31,41 @@ function getGreeting() {
   return 'Good evening'
 }
 
-function getStreak(logs: { date: string }[]) {
+/** Week number (ISO-style Mon-Sun) as "YYYY-WW" */
+function weekKey(date: Date): string {
+  const d = new Date(date)
+  d.setHours(0, 0, 0, 0)
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7)) // Monday of this week
+  return `${d.getFullYear()}-${String(Math.ceil((((d.getTime() - new Date(d.getFullYear(), 0, 1).getTime()) / 86400000) + 1) / 7)).padStart(2, '0')}`
+}
+
+function getWeekStreak(logs: { date: string }[]): number {
   if (!logs.length) return 0
-  const today = new Date().toDateString()
-  const dates = [...new Set(logs.map((l) => new Date(l.date).toDateString()))]
+  const activeWeeks = new Set(logs.map((l) => weekKey(new Date(l.date))))
   let streak = 0
-  let check = new Date()
-  if (!dates.includes(today)) check.setDate(check.getDate() - 1)
-  while (true) {
-    if (dates.includes(check.toDateString())) {
-      streak++
-      check.setDate(check.getDate() - 1)
-    } else break
+  const now = new Date()
+  let check = new Date(now)
+  check.setDate(check.getDate() - ((check.getDay() + 6) % 7)) // this Monday
+  // If current week has activity, start counting from here; else try last week
+  if (!activeWeeks.has(weekKey(check))) {
+    check.setDate(check.getDate() - 7)
+  }
+  while (activeWeeks.has(weekKey(check))) {
+    streak++
+    check.setDate(check.getDate() - 7)
   }
   return streak
 }
 
 export default function Home() {
   const navigate = useNavigate()
-  const { plans, logs, activityLogs, prefs, setActivePlanId, setPrefs, addActivityLog } = useWorkoutStore()
+  const { plans, logs, activityLogs, prefs, setActivePlanId, setPrefs, deletePlan, addActivityLog } = useWorkoutStore()
+  const unit = prefs.unit ?? 'kg'
   const allLogs = [...logs.map(l => ({ date: l.date })), ...activityLogs.map(l => ({ date: l.date }))]
-  const streak = getStreak(allLogs)
+  const streak = getWeekStreak(allLogs)
+
+  // Plan detail sheet
+  const [viewingPlan, setViewingPlan] = useState<WorkoutPlan | null>(null)
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState(prefs.name)
 
@@ -90,12 +105,21 @@ export default function Home() {
     navigate('/active')
   }
 
-  const thisWeek = allLogs.filter((l) => {
-    const d = new Date(l.date)
-    const now = new Date()
-    const weekAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6)
-    return d >= weekAgo
-  }).length
+  const now = new Date()
+  const weekAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6)
+  const thisWeek = allLogs.filter((l) => new Date(l.date) >= weekAgo).length
+
+  // Weekly volume: sum of (sets × reps × weightKg) for all workout logs this week
+  const weeklyVolumeKg = logs
+    .filter((l) => new Date(l.date) >= weekAgo)
+    .reduce((total, l) => {
+      const plan = plans.find((p) => p.id === l.planId)
+      if (!plan) return total
+      return total + plan.exercises.reduce((s, e) => {
+        const w = l.exercises?.find((ex) => ex.exerciseId === e.exerciseId)?.weightKg ?? 0
+        return s + e.sets * e.reps * w
+      }, 0)
+    }, 0)
 
   return (
     <div style={{ padding: '0 20px 24px' }}>
@@ -169,7 +193,7 @@ export default function Home() {
               }}
             >
               <div style={{ fontSize: 22, fontWeight: 700, color: '#3A2E28', lineHeight: 1 }}>{streak}</div>
-              <div style={{ fontSize: 10, color: '#7A3020', fontWeight: 500, marginTop: 2 }}>day streak</div>
+              <div style={{ fontSize: 10, color: '#7A3020', fontWeight: 500, marginTop: 2 }}>week streak</div>
             </motion.div>
           )}
         </div>
@@ -179,7 +203,7 @@ export default function Home() {
       <div style={{ display: 'flex', gap: 10, marginBottom: 28 }}>
         {[
           { label: 'This week', value: thisWeek, unit: 'workouts' },
-          { label: 'Weight', value: prefs.weightKg, unit: 'kg' },
+          { label: 'Volume', value: fmtWeight(weeklyVolumeKg, unit), unit: unit },
           { label: 'Total', value: allLogs.length, unit: 'sessions' },
         ].map((stat) => (
           <div
@@ -363,24 +387,43 @@ export default function Home() {
                     )}
                   </div>
                   {/* start button */}
-                  <motion.button
-                    whileTap={{ scale: 0.94 }}
-                    onClick={() => handleStart(plan)}
-                    style={{
-                      width: '100%',
-                      background: '#3A2E28',
-                      color: '#FAF7F2',
-                      border: 'none',
-                      borderRadius: 14,
-                      padding: '13px',
-                      fontSize: 15,
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      fontFamily: '"DM Sans", system-ui, sans-serif',
-                    }}
-                  >
-                    Start Workout
-                  </motion.button>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <motion.button
+                      whileTap={{ scale: 0.94 }}
+                      onClick={() => setViewingPlan(plan)}
+                      style={{
+                        flex: '0 0 auto',
+                        background: '#F0EAE0',
+                        color: '#7A6458',
+                        border: 'none',
+                        borderRadius: 14,
+                        padding: '13px 16px',
+                        fontSize: 14,
+                        cursor: 'pointer',
+                        fontFamily: '"DM Sans", system-ui, sans-serif',
+                      }}
+                    >
+                      View
+                    </motion.button>
+                    <motion.button
+                      whileTap={{ scale: 0.94 }}
+                      onClick={() => handleStart(plan)}
+                      style={{
+                        flex: 1,
+                        background: '#3A2E28',
+                        color: '#FAF7F2',
+                        border: 'none',
+                        borderRadius: 14,
+                        padding: '13px',
+                        fontSize: 15,
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        fontFamily: '"DM Sans", system-ui, sans-serif',
+                      }}
+                    >
+                      Start Workout
+                    </motion.button>
+                  </div>
                 </div>
               </motion.div>
             )
@@ -407,7 +450,7 @@ export default function Home() {
         <AnimatePresence mode="wait">
           {suggestedPlan ? (
             <motion.div key={suggestedPlan.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-              <WorkoutCard plan={suggestedPlan} onStart={handleStart} />
+              <WorkoutCard plan={suggestedPlan} onStart={handleStart} onTap={setViewingPlan} />
             </motion.div>
           ) : (
             <motion.div
@@ -474,7 +517,7 @@ export default function Home() {
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {plans.slice(1).map((plan) => (
-              <WorkoutCard key={plan.id} plan={plan} onStart={handleStart} />
+              <WorkoutCard key={plan.id} plan={plan} onStart={handleStart} onTap={setViewingPlan} />
             ))}
           </div>
         </div>
@@ -527,6 +570,86 @@ export default function Home() {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Plan Detail sheet */}
+      {createPortal(
+        <AnimatePresence>
+          {viewingPlan && (
+            <>
+              <motion.div key="bd" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onClick={() => setViewingPlan(null)}
+                style={{ position: 'fixed', inset: 0, background: 'rgba(58,46,40,0.4)', zIndex: 1000 }} />
+              <motion.div key="sh" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                style={{
+                  position: 'fixed', bottom: 0, left: 0, right: 0, margin: '0 auto',
+                  width: '100%', maxWidth: 430, background: '#FAF7F2',
+                  borderRadius: '28px 28px 0 0', padding: '28px 24px',
+                  paddingBottom: 'max(32px, calc(env(safe-area-inset-bottom) + 16px))',
+                  zIndex: 1001, maxHeight: '88svh', overflowY: 'auto', WebkitOverflowScrolling: 'touch',
+                }}
+              >
+                <div style={{ width: 36, height: 4, background: '#E8D8C4', borderRadius: 2, margin: '0 auto 24px' }} />
+                <h2 style={{ fontFamily: '"Cormorant Garamond", Georgia, serif', fontSize: 28, fontWeight: 500, color: '#3A2E28', margin: '0 0 4px' }}>
+                  {viewingPlan.name}
+                </h2>
+                <p style={{ fontSize: 13, color: '#C4A882', margin: '0 0 20px' }}>
+                  {viewingPlan.exercises.length} exercises · ~{Math.round(viewingPlan.exercises.reduce((s, e) => s + e.sets, 0) * 0.8)} min
+                </p>
+
+                {/* Exercise list */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+                  {viewingPlan.exercises.map((we, i) => {
+                    const ex = allExercises.find((e) => e.id === we.exerciseId)
+                    if (!ex) return null
+                    return (
+                      <div key={we.exerciseId} style={{ background: '#fff', borderRadius: 14, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, border: '1px solid rgba(196,168,130,0.12)' }}>
+                        <div style={{ width: 28, height: 28, background: '#F0EAE0', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600, color: '#C4A882', flexShrink: 0 }}>
+                          {i + 1}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 14, fontWeight: 500, color: '#3A2E28' }}>{ex.name}</div>
+                          <div style={{ fontSize: 12, color: '#C4A882', marginTop: 2 }}>
+                            {we.sets} sets · {we.reps} reps
+                            {we.weightKg ? ` · ${fmtWeight(we.weightKg, unit)} ${unit}` : ''}
+                          </div>
+                        </div>
+                        <div style={{ fontSize: 11, background: categoryColors[ex.category]?.bg, color: categoryColors[ex.category]?.text, borderRadius: 7, padding: '3px 8px', textTransform: 'capitalize', flexShrink: 0 }}>
+                          {ex.category}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Actions */}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                  <motion.button whileTap={{ scale: 0.96 }}
+                    onClick={() => { setViewingPlan(null); handleStart(viewingPlan) }}
+                    style={{ flex: 2, background: '#3A2E28', color: '#FAF7F2', border: 'none', borderRadius: 14, padding: '14px', fontSize: 15, fontWeight: 500, cursor: 'pointer', fontFamily: '"DM Sans", system-ui, sans-serif' }}>
+                    Start Workout
+                  </motion.button>
+                  {plans.some(p => p.id === viewingPlan.id) && (
+                    <motion.button whileTap={{ scale: 0.96 }}
+                      onClick={() => { setViewingPlan(null); navigate(`/builder?edit=${viewingPlan.id}`) }}
+                      style={{ flex: 1, background: '#F0EAE0', color: '#7A6458', border: 'none', borderRadius: 14, padding: '14px', fontSize: 15, cursor: 'pointer', fontFamily: '"DM Sans", system-ui, sans-serif' }}>
+                      Edit
+                    </motion.button>
+                  )}
+                </div>
+                {plans.some(p => p.id === viewingPlan.id) && (
+                  <motion.button whileTap={{ scale: 0.96 }}
+                    onClick={() => { deletePlan(viewingPlan.id); setViewingPlan(null) }}
+                    style={{ width: '100%', background: 'transparent', color: '#C0504D', border: '1px solid rgba(192,80,77,0.3)', borderRadius: 14, padding: '12px', fontSize: 14, cursor: 'pointer', fontFamily: '"DM Sans", system-ui, sans-serif' }}>
+                    Delete Plan
+                  </motion.button>
+                )}
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body
       )}
 
       {/* Log Session sheet */}
