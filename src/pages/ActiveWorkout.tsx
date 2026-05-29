@@ -10,6 +10,8 @@ import { fmtWeight, weightStep, KG_TO_LB } from '../lib/units'
 
 const REST_SECONDS = 30
 
+const HAB_IDX_KEY = 'elevate-hab-idx'
+
 const HAB_MESSAGES = [
   "Watching you show up every day is my favourite thing in the world. I love you so much.",
   "You just made me the proudest man alive. That's my girl.",
@@ -44,7 +46,10 @@ export default function ActiveWorkout() {
   const [exIdx, setExIdx] = useState(0)
   const [setIdx, setSetIdx] = useState(0)
   const [phase, setPhase] = useState<Phase>('exercise')
-  const [habMessage] = useState(() => HAB_MESSAGES[Math.floor(Math.random() * HAB_MESSAGES.length)])
+  const [habMessage] = useState(() => {
+    const idx = parseInt(localStorage.getItem(HAB_IDX_KEY) ?? '0', 10) % HAB_MESSAGES.length
+    return HAB_MESSAGES[idx]
+  })
   const [editingWeight, setEditingWeight] = useState(false)
   const [editingWeightVal, setEditingWeightVal] = useState('')
 
@@ -116,6 +121,10 @@ export default function ActiveWorkout() {
         exercises,
         prs,
       })
+      // Advance to the next message for next time
+      const currentIdx = parseInt(localStorage.getItem(HAB_IDX_KEY) ?? '0', 10)
+      localStorage.setItem(HAB_IDX_KEY, String((currentIdx + 1) % HAB_MESSAGES.length))
+
       setActivePlanId(null)
       navigate('/')
     },
