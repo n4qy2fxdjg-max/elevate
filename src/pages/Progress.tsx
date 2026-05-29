@@ -44,29 +44,31 @@ export default function Progress() {
   const streak = getWeekStreak(allDates)
   const [detailLog, setDetailLog] = useState<WorkoutLog | null>(null)
 
-  const heatmap = useMemo(() => {
+  // 12 calendar weeks (columns), each a Sunday→Saturday column of 7 days.
+  const weekCols = useMemo(() => {
     const weeks = 12
-    const days: Array<{ date: Date; count: number }> = []
-    const now = new Date()
-    const start = new Date(now)
-    start.setDate(start.getDate() - (weeks * 7 - 1))
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    // Sunday of the current week
+    const thisSunday = new Date(today)
+    thisSunday.setDate(today.getDate() - today.getDay())
+    // Sunday of the first visible week
+    const start = new Date(thisSunday)
+    start.setDate(thisSunday.getDate() - (weeks - 1) * 7)
 
-    for (let i = 0; i < weeks * 7; i++) {
-      const d = new Date(start)
-      d.setDate(d.getDate() + i)
-      const count = allDates.filter((l) => sameDay(isoToDate(l.date), d)).length
-      days.push({ date: d, count })
+    const cols: Array<Array<{ date: Date; count: number }>> = []
+    for (let w = 0; w < weeks; w++) {
+      const col: Array<{ date: Date; count: number }> = []
+      for (let d = 0; d < 7; d++) {
+        const date = new Date(start)
+        date.setDate(start.getDate() + w * 7 + d)
+        const count = allDates.filter((l) => sameDay(isoToDate(l.date), date)).length
+        col.push({ date, count })
+      }
+      cols.push(col)
     }
-    return days
+    return cols
   }, [logs, activityLogs])
-
-  const weekRows = useMemo(() => {
-    const rows: typeof heatmap[] = []
-    for (let i = 0; i < heatmap.length; i += 7) {
-      rows.push(heatmap.slice(i, i + 7))
-    }
-    return rows
-  }, [heatmap])
 
   const thisWeekLogs = allDates.filter((l) => {
     const d = new Date(l.date)
@@ -170,30 +172,33 @@ export default function Progress() {
           <div style={{ fontSize: 11, color: '#C4A882' }}>Last 12 weeks</div>
         </div>
 
-        {/* Day labels */}
-        <div style={{ display: 'flex', gap: 3, marginBottom: 4, paddingLeft: 0 }}>
-          {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-            <div key={i} style={{ flex: 1, textAlign: 'center', fontSize: 9, color: '#C4A882' }}>{d}</div>
-          ))}
-        </div>
-
+        {/* Grid: day labels (left column) + 12 week columns */}
         <div style={{ display: 'flex', gap: 3 }}>
-          {weekRows.map((week, wi) => (
-            <div key={wi} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
-              {week.map((day, di) => (
-                <div
-                  key={di}
-                  title={`${day.date.toDateString()}: ${day.count} workout(s)`}
-                  style={{
-                    aspectRatio: '1',
-                    borderRadius: 3,
-                    background: getHeatColor(day.count),
-                    transition: 'background 0.2s',
-                  }}
-                />
-              ))}
-            </div>
-          ))}
+          {/* Day labels — stretch to grid height, one per row */}
+          <div style={{ width: 12, display: 'flex', flexDirection: 'column', gap: 3, marginRight: 2 }}>
+            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+              <div key={i} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', fontSize: 8, color: '#C4A882' }}>{d}</div>
+            ))}
+          </div>
+          {/* Week columns */}
+          <div style={{ flex: 1, display: 'flex', gap: 3 }}>
+            {weekCols.map((week, wi) => (
+              <div key={wi} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                {week.map((day, di) => (
+                  <div
+                    key={di}
+                    title={`${day.date.toDateString()}: ${day.count} workout(s)`}
+                    style={{
+                      aspectRatio: '1',
+                      borderRadius: 3,
+                      background: getHeatColor(day.count),
+                      transition: 'background 0.2s',
+                    }}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Legend */}

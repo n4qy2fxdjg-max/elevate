@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import type { WorkoutPlan } from '../types'
 import { exercises as allExercises, categoryColors } from '../data/exercises'
+import { estimateMinutes } from '../lib/workout'
 
 interface WorkoutCardProps {
   plan: WorkoutPlan
@@ -10,8 +11,7 @@ interface WorkoutCardProps {
 }
 
 export default function WorkoutCard({ plan, onStart, onDelete, onTap }: WorkoutCardProps) {
-  const totalSets = plan.exercises.reduce((s, e) => s + e.sets, 0)
-  const estMinutes = totalSets * 2
+  const estMinutes = estimateMinutes(plan)
 
   // Unique muscle categories in order of appearance
   const categories = [...new Set(

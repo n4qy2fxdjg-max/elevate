@@ -7,6 +7,7 @@ import WorkoutCard from '../components/WorkoutCard'
 import { exercises as allExercises, categoryColors } from '../data/exercises'
 import type { WorkoutPlan, ActivityLog } from '../types'
 import { fmtWeight, fmtVolume } from '../lib/units'
+import { estimateMinutes } from '../lib/workout'
 
 const ACTIVITY_TYPES = [
   { label: 'Pilates', emoji: '🩰' },
@@ -58,15 +59,13 @@ function getWeekStreak(logs: { date: string }[]): number {
 
 export default function Home() {
   const navigate = useNavigate()
-  const { plans, logs, activityLogs, prefs, setActivePlanId, setPrefs, deletePlan, addActivityLog } = useWorkoutStore()
+  const { plans, logs, activityLogs, prefs, setActivePlanId, deletePlan, addActivityLog } = useWorkoutStore()
   const unit = prefs.unit ?? 'kg'
   const allLogs = [...logs.map(l => ({ date: l.date })), ...activityLogs.map(l => ({ date: l.date }))]
   const streak = getWeekStreak(allLogs)
 
   // Plan detail sheet
   const [viewingPlan, setViewingPlan] = useState<WorkoutPlan | null>(null)
-  const [editingName, setEditingName] = useState(false)
-  const [nameInput, setNameInput] = useState(prefs.name)
 
   // Activity log sheet
   const [logOpen, setLogOpen] = useState(false)
@@ -141,39 +140,10 @@ export default function Home() {
             >
               {getGreeting()},
               <br />
-              {editingName ? (
-                <>
-                  <span style={{ color: '#C4A882', fontStyle: 'italic', fontSize: 32 }}>My love, </span>
-                  <input
-                    autoFocus
-                    value={nameInput}
-                    onChange={(e) => setNameInput(e.target.value)}
-                    onBlur={() => { setPrefs({ name: nameInput || 'Zain' }); setEditingName(false) }}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { setPrefs({ name: nameInput || 'Zain' }); setEditingName(false) } }}
-                    style={{
-                      fontFamily: '"Cormorant Garamond", Georgia, serif',
-                      fontSize: 38,
-                      fontWeight: 400,
-                      color: '#3A2E28',
-                      background: 'none',
-                      border: 'none',
-                      borderBottom: '2px solid #F2C4B0',
-                      outline: 'none',
-                      width: '50%',
-                      padding: 0,
-                      lineHeight: 1.1,
-                    }}
-                  />
-                </>
-              ) : (
-                <span
-                  onClick={() => { setEditingName(true); setNameInput(prefs.name) }}
-                  style={{ cursor: 'text', borderBottom: '2px solid #F2C4B0', paddingBottom: 1 }}
-                >
-                  <em style={{ color: '#C4A882', fontWeight: 300 }}>My love, </em>
-                  {prefs.name}
-                </span>
-              )}
+              <span style={{ borderBottom: '2px solid #F2C4B0', paddingBottom: 1 }}>
+                <em style={{ color: '#C4A882', fontWeight: 300 }}>My love, </em>
+                {prefs.name}
+              </span>
             </h1>
           </div>
 
@@ -191,8 +161,7 @@ export default function Home() {
                 marginTop: 20,
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ width: 14 }} />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
                 <span style={{ fontSize: 22, fontWeight: 700, color: '#3A2E28', lineHeight: 1 }}>{streak}</span>
                 <svg width="14" height="16" viewBox="0 0 14 18" fill="none">
                   <path d="M7 0C7 0 4 4 4 7C4 7 2.5 5.5 3 3C1 5 0 7.5 0 10C0 14.4183 3.13401 18 7 18C10.866 18 14 14.4183 14 10C14 6 11 3 9.5 4.5C10 2.5 7 0 7 0Z" fill="#C8860A"/>
@@ -438,7 +407,7 @@ export default function Home() {
                   {viewingPlan.name}
                 </h2>
                 <p style={{ fontSize: 13, color: '#C4A882', margin: '0 0 20px' }}>
-                  {viewingPlan.exercises.length} exercises · ~{Math.round(viewingPlan.exercises.reduce((s, e) => s + e.sets, 0) * 0.8)} min
+                  {viewingPlan.exercises.length} exercises · ~{estimateMinutes(viewingPlan)} min
                 </p>
 
                 {/* Exercise list */}

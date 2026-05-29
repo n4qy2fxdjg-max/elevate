@@ -67,6 +67,8 @@ export default function ActiveWorkout() {
     setEditingWeight(false)
   }
   const [restRemaining, setRestRemaining] = useState(REST_SECONDS)
+  const [restTotal, setRestTotal] = useState(REST_SECONDS)
+  const [confirmEnd, setConfirmEnd] = useState(false)
   const [exWeights, setExWeights] = useState<Record<string, number>>(() =>
     Object.fromEntries(
       (plan?.exercises ?? []).map((e) => [e.exerciseId, e.weightKg ?? prefs.weightKg])
@@ -99,14 +101,16 @@ export default function ActiveWorkout() {
         weightKg: exWeights[e.exerciseId] ?? prefs.weightKg,
       })) ?? []
 
-      // Detect PRs: compare current weight vs all-time max from prior logs
+      // Detect PRs: beat the prior best — but only if there IS prior history
+      // (otherwise the first-ever session of every move would falsely count).
       const prs = exercises
         .filter(({ exerciseId, weightKg }) => {
-          const historicalMax = logs
+          const priorWeights = logs
             .flatMap((l) => l.exercises ?? [])
             .filter((ex) => ex.exerciseId === exerciseId)
-            .reduce((max, ex) => Math.max(max, ex.weightKg), 0)
-          return weightKg > historicalMax
+            .map((ex) => ex.weightKg)
+          if (priorWeights.length === 0) return false
+          return weightKg > Math.max(...priorWeights)
         })
         .map((e) => e.exerciseId)
 
@@ -134,9 +138,15 @@ export default function ActiveWorkout() {
     if (!plan) { navigate('/'); return }
   }, [plan, navigate])
 
+  function addRestTime() {
+    setRestRemaining((r) => r + 15)
+    setRestTotal((t) => t + 15)
+  }
+
   useEffect(() => {
     if (phase !== 'rest') return
     setRestRemaining(REST_SECONDS)
+    setRestTotal(REST_SECONDS)
     timerRef.current = setInterval(() => {
       setRestRemaining((r) => {
         if (r <= 1) {
@@ -180,11 +190,12 @@ export default function ActiveWorkout() {
     // Compute PRs for the celebration screen
     const sessionPRs = plan.exercises.filter(({ exerciseId }) => {
       const current = exWeights[exerciseId] ?? prefs.weightKg
-      const histMax = logs
+      const priorWeights = logs
         .flatMap((l) => l.exercises ?? [])
         .filter((ex) => ex.exerciseId === exerciseId)
-        .reduce((m, ex) => Math.max(m, ex.weightKg), 0)
-      return current > histMax
+        .map((ex) => ex.weightKg)
+      if (priorWeights.length === 0) return false
+      return current > Math.max(...priorWeights)
     })
 
     return (
@@ -337,7 +348,7 @@ export default function ActiveWorkout() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px 20px' }}>
         <motion.button
           whileTap={{ scale: 0.92 }}
-          onClick={() => finishWorkout(false)}
+          onClick={() => setConfirmEnd(true)}
           style={{
             background: 'rgba(255,255,255,0.12)',
             border: 'none',
@@ -553,8 +564,8 @@ export default function ActiveWorkout() {
             <ProgressRing
               size={180}
               strokeWidth={8}
-              progress={REST_SECONDS - restRemaining}
-              total={REST_SECONDS}
+              progress={restTotal - restRemaining}
+              total={restTotal}
               color="#F2C4B0"
               trackColor="rgba(255,255,255,0.1)"
             >
@@ -586,23 +597,96 @@ export default function ActiveWorkout() {
               </div>
             )}
 
-            <motion.button
-              whileTap={{ scale: 0.96 }}
-              onClick={skipRest}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <motion.button
+                whileTap={{ scale: 0.96 }}
+                onClick={addRestTime}
+                style={{
+                  background: 'rgba(255,255,255,0.12)',
+                  color: '#E8D8C4',
+                  border: 'none',
+                  borderRadius: 14,
+                  padding: '14px 28px',
+                  fontSize: 15,
+                  cursor: 'pointer',
+                  fontFamily: '"DM Sans", system-ui, sans-serif',
+                }}
+              >
+                +15s
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.96 }}
+                onClick={skipRest}
+                style={{
+                  background: 'rgba(255,255,255,0.12)',
+                  color: '#E8D8C4',
+                  border: 'none',
+                  borderRadius: 14,
+                  padding: '14px 28px',
+                  fontSize: 15,
+                  cursor: 'pointer',
+                  fontFamily: '"DM Sans", system-ui, sans-serif',
+                }}
+              >
+                Skip Rest
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* End-workout confirmation */}
+      <AnimatePresence>
+        {confirmEnd && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setConfirmEnd(false)}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(28,22,18,0.55)', zIndex: 1000 }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ type: 'spring', damping: 26, stiffness: 320 }}
               style={{
-                background: 'rgba(255,255,255,0.12)',
-                color: '#E8D8C4',
-                border: 'none',
-                borderRadius: 14,
-                padding: '14px 32px',
-                fontSize: 15,
-                cursor: 'pointer',
-                fontFamily: '"DM Sans", system-ui, sans-serif',
+                position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                width: 'calc(100% - 64px)', maxWidth: 320, background: '#FAF7F2',
+                borderRadius: 24, padding: '24px 22px', zIndex: 1001, textAlign: 'center',
               }}
             >
-              Skip Rest
-            </motion.button>
-          </motion.div>
+              <h3 style={{ fontFamily: '"Cormorant Garamond", Georgia, serif', fontSize: 26, fontWeight: 500, color: '#3A2E28', margin: '0 0 6px' }}>
+                End workout?
+              </h3>
+              <p style={{ fontSize: 14, color: '#7A6458', margin: '0 0 20px', lineHeight: 1.5 }}>
+                Your progress so far will be saved as a partial session.
+              </p>
+              <motion.button
+                whileTap={{ scale: 0.96 }}
+                onClick={() => setConfirmEnd(false)}
+                style={{
+                  width: '100%', background: '#3A2E28', color: '#FAF7F2', border: 'none',
+                  borderRadius: 14, padding: '15px', fontSize: 15, fontWeight: 600, cursor: 'pointer',
+                  fontFamily: '"DM Sans", system-ui, sans-serif', marginBottom: 10,
+                }}
+              >
+                Keep going
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.96 }}
+                onClick={() => { setConfirmEnd(false); finishWorkout(false) }}
+                style={{
+                  width: '100%', background: 'transparent', color: '#C0504D',
+                  border: '1px solid rgba(192,80,77,0.3)', borderRadius: 14, padding: '13px',
+                  fontSize: 14, cursor: 'pointer', fontFamily: '"DM Sans", system-ui, sans-serif',
+                }}
+              >
+                End workout
+              </motion.button>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>
