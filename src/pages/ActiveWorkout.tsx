@@ -10,6 +10,27 @@ import { fmtWeight, weightStep, KG_TO_LB } from '../lib/units'
 
 const REST_SECONDS = 30
 
+const HAB_MESSAGES = [
+  "Watching you show up every day is my favourite thing in the world. I love you so much.",
+  "You just made me the proudest husband alive. That's my girl.",
+  "I know how hard that was, and you did it anyway. That's exactly who you are.",
+  "Every bit of strength you build, you already had it in you. I just get to watch it come out.",
+  "You are genuinely the most impressive person I know. I mean that.",
+  "I'm going to be bragging about you forever, you know that right?",
+  "That looked incredible from where I'm standing. Never stop.",
+  "My love, you are unstoppable. I hope you know it as clearly as I do.",
+  "I fell in love with you for a thousand reasons, and this is one of them.",
+  "Seeing you push through that makes me love you even more — I didn't think that was possible.",
+  "You're building something beautiful, inside and out. I'm so lucky to be yours.",
+  "Rest, eat something, and let me tell you how amazing you are when you get home.",
+  "You finished. That's not nothing — that's everything. So proud of you.",
+  "The discipline you have is extraordinary. One day you'll see yourself the way I see you.",
+  "I just want you to know that I notice every single session. It matters. You matter.",
+  "Strong, elegant, and completely my favourite human. Nice work today, habibti.",
+  "Whatever you're working towards, you're closer today than yesterday. Keep going, my love.",
+  "No one puts in the work quietly like you do. I see you, always.",
+]
+
 type Phase = 'exercise' | 'rest' | 'done'
 
 export default function ActiveWorkout() {
@@ -24,6 +45,7 @@ export default function ActiveWorkout() {
   const [exIdx, setExIdx] = useState(0)
   const [setIdx, setSetIdx] = useState(0)
   const [phase, setPhase] = useState<Phase>('exercise')
+  const [habMessage] = useState(() => HAB_MESSAGES[Math.floor(Math.random() * HAB_MESSAGES.length)])
   const [editingWeight, setEditingWeight] = useState(false)
   const [editingWeightVal, setEditingWeightVal] = useState('')
 
@@ -208,9 +230,35 @@ export default function ActiveWorkout() {
         <p style={{ fontSize: 15, color: '#C4A882', margin: '0 0 12px', textAlign: 'center' }}>
           {plan.name} complete
         </p>
-        <p style={{ fontSize: 14, color: '#E8D8C4', margin: '0 0 24px', textAlign: 'center' }}>
+        <p style={{ fontSize: 14, color: '#E8D8C4', margin: '0 0 28px', textAlign: 'center' }}>
           {Math.round((Date.now() - startTime.current) / 60000)} minutes · {totalSets} sets
         </p>
+
+        {/* Message from Hab */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          style={{
+            width: '100%',
+            maxWidth: 320,
+            marginBottom: 28,
+            textAlign: 'center',
+          }}
+        >
+          <p style={{
+            fontFamily: '"Cormorant Garamond", Georgia, serif',
+            fontSize: 19,
+            fontWeight: 400,
+            fontStyle: 'italic',
+            color: '#FAF7F2',
+            lineHeight: 1.55,
+            margin: '0 0 10px',
+          }}>
+            "{habMessage}"
+          </p>
+          <span style={{ fontSize: 13, color: '#C4A882', letterSpacing: 0.5 }}>— Hab 🤍</span>
+        </motion.div>
 
         {/* PR celebration */}
         {sessionPRs.length > 0 && (
