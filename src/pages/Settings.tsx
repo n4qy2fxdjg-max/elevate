@@ -463,16 +463,3 @@ const secondaryBtn: React.CSSProperties = {
   fontFamily: '"DM Sans", system-ui, sans-serif',
 }
 
-const stepperBtn: React.CSSProperties = {
-  width: 40,
-  height: 40,
-  background: '#FAF7F2',
-  border: '1px solid rgba(196,168,130,0.3)',
-  borderRadius: 12,
-  fontSize: 20,
-  color: '#3A2E28',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-}
