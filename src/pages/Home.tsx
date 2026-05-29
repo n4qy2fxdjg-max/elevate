@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useWorkoutStore } from '../store/useWorkoutStore'
 import WorkoutCard from '../components/WorkoutCard'
-import { featuredPlans } from '../data/featuredPlans'
 import { exercises as allExercises, categoryColors } from '../data/exercises'
 import type { WorkoutPlan, ActivityLog } from '../types'
 import { fmtWeight, fmtVolume } from '../lib/units'
@@ -267,29 +266,6 @@ export default function Home() {
           </svg>
         </div>
       </motion.button>
-
-      {/* Featured routines */}
-      <div style={{ marginBottom: 28 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
-          <h2
-            style={{
-              fontFamily: '"Cormorant Garamond", Georgia, serif',
-              fontSize: 22,
-              fontWeight: 500,
-              color: '#3A2E28',
-              margin: 0,
-            }}
-          >
-            Featured
-          </h2>
-          <span style={{ fontSize: 12, color: '#C4A882', fontStyle: 'italic' }}>curated for you</span>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {featuredPlans.map((plan) => (
-            <WorkoutCard key={plan.id} plan={plan} onStart={handleStart} onTap={setViewingPlan} />
-          ))}
-        </div>
-      </div>
 
       {/* Suggested workout */}
       <div style={{ marginBottom: 24 }}>

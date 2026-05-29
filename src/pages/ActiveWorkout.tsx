@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { nanoid } from 'nanoid'
 import { exercises as allExercises } from '../data/exercises'
-import { featuredPlans } from '../data/featuredPlans'
 import { useWorkoutStore } from '../store/useWorkoutStore'
 import ProgressRing from '../components/ProgressRing'
 import { fmtWeight, weightStep, KG_TO_LB } from '../lib/units'
@@ -38,7 +37,7 @@ export default function ActiveWorkout() {
   const navigate = useNavigate()
   const { plans, logs, activePlanId, addLog, setActivePlanId, prefs } = useWorkoutStore()
   const unit = prefs.unit ?? 'kg'
-  const plan = plans.find((p) => p.id === activePlanId) ?? featuredPlans.find((p) => p.id === activePlanId)
+  const plan = plans.find((p) => p.id === activePlanId)
 
   const startTime = useRef(Date.now())
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
