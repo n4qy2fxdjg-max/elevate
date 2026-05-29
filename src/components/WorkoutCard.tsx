@@ -11,7 +11,7 @@ interface WorkoutCardProps {
 
 export default function WorkoutCard({ plan, onStart, onDelete, onTap }: WorkoutCardProps) {
   const totalSets = plan.exercises.reduce((s, e) => s + e.sets, 0)
-  const estMinutes = Math.round(totalSets * 0.8)
+  const estMinutes = totalSets * 2
 
   // Unique muscle categories in order of appearance
   const categories = [...new Set(
@@ -59,7 +59,7 @@ export default function WorkoutCard({ plan, onStart, onDelete, onTap }: WorkoutC
 
         {/* Muscle group chips */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
-          {categories.slice(0, 4).map((cat) => (
+          {categories.map((cat) => (
             <span
               key={cat}
               style={{
@@ -75,19 +75,6 @@ export default function WorkoutCard({ plan, onStart, onDelete, onTap }: WorkoutC
               {cat}
             </span>
           ))}
-          {categories.length > 4 && (
-            <span
-              style={{
-                background: '#F0EAE0',
-                color: '#7A6458',
-                borderRadius: 8,
-                padding: '3px 8px',
-                fontSize: 12,
-              }}
-            >
-              +{categories.length - 4}
-            </span>
-          )}
         </div>
 
         <div style={{ display: 'flex', gap: 8 }}>
