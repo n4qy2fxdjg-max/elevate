@@ -162,16 +162,17 @@ export default function Settings() {
         </div>
 
         {/* Unit toggle */}
-        <div style={{ marginBottom: 16 }}>
-          <label style={{ fontSize: 13, color: '#7A6458', display: 'block', marginBottom: 8 }}>Weight unit</label>
-          <div style={{ display: 'flex', background: '#FAF7F2', borderRadius: 12, padding: 3, border: '1px solid rgba(196,168,130,0.25)', width: 'fit-content' }}>
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: 13, color: '#7A6458', display: 'block', marginBottom: 6 }}>Weight unit</label>
+          <div style={{ display: 'flex', background: '#FAF7F2', borderRadius: 12, padding: 3, border: '1px solid rgba(196,168,130,0.3)', width: '100%', boxSizing: 'border-box' }}>
             {(['kg', 'lb'] as const).map((u) => (
               <motion.button
                 key={u}
                 whileTap={{ scale: 0.94 }}
                 onClick={() => setPrefs({ unit: u })}
                 style={{
-                  padding: '8px 24px',
+                  flex: 1,
+                  padding: '10px 0',
                   borderRadius: 10,
                   border: 'none',
                   background: unit === u ? '#3A2E28' : 'transparent',
@@ -194,41 +195,43 @@ export default function Settings() {
           <label style={{ fontSize: 13, color: '#7A6458', display: 'block', marginBottom: 6 }}>
             Default ankle weight ({unit})
           </label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', background: '#FAF7F2', border: '1px solid rgba(196,168,130,0.3)', borderRadius: 12, overflow: 'hidden', width: '100%', boxSizing: 'border-box' }}>
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => {
                 const step = weightStep(unit)
                 setPrefs({ weightKg: Math.max(step, parseFloat((prefs.weightKg - step).toFixed(4))) })
               }}
-              style={stepperBtn}
+              style={{ padding: '12px 18px', background: 'none', border: 'none', fontSize: 20, color: '#7A6458', cursor: 'pointer', lineHeight: 1 }}
             >−</motion.button>
-            {editingWeight ? (
-              <input
-                autoFocus
-                type="number"
-                inputMode="decimal"
-                value={editingWeightVal}
-                onChange={(e) => setEditingWeightVal(e.target.value)}
-                onBlur={commitWeight}
-                onKeyDown={(e) => e.key === 'Enter' && commitWeight()}
-                style={{ width: 72, textAlign: 'center', fontSize: 18, fontWeight: 500, color: '#3A2E28', background: '#FAF7F2', border: '1px solid rgba(196,168,130,0.4)', borderRadius: 10, padding: '6px 8px', outline: 'none', fontFamily: '"DM Sans", system-ui, sans-serif' }}
-              />
-            ) : (
-              <span
-                onClick={startEditWeight}
-                style={{ fontSize: 18, fontWeight: 500, color: '#3A2E28', minWidth: 64, textAlign: 'center', cursor: 'text', borderBottom: '1px dashed rgba(196,168,130,0.5)', paddingBottom: 1 }}
-              >
-                {fmtWeight(prefs.weightKg, unit)} {unit}
-              </span>
-            )}
+            <div style={{ flex: 1, textAlign: 'center' }}>
+              {editingWeight ? (
+                <input
+                  autoFocus
+                  type="number"
+                  inputMode="decimal"
+                  value={editingWeightVal}
+                  onChange={(e) => setEditingWeightVal(e.target.value)}
+                  onBlur={commitWeight}
+                  onKeyDown={(e) => e.key === 'Enter' && commitWeight()}
+                  style={{ width: 80, textAlign: 'center', fontSize: 16, fontWeight: 500, color: '#3A2E28', background: 'transparent', border: 'none', outline: 'none', fontFamily: '"DM Sans", system-ui, sans-serif' }}
+                />
+              ) : (
+                <span
+                  onClick={startEditWeight}
+                  style={{ fontSize: 16, fontWeight: 500, color: '#3A2E28', cursor: 'text', borderBottom: '1px dashed rgba(196,168,130,0.5)', paddingBottom: 1 }}
+                >
+                  {fmtWeight(prefs.weightKg, unit)} {unit}
+                </span>
+              )}
+            </div>
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => {
                 const step = weightStep(unit)
                 setPrefs({ weightKg: parseFloat((prefs.weightKg + step).toFixed(4)) })
               }}
-              style={stepperBtn}
+              style={{ padding: '12px 18px', background: 'none', border: 'none', fontSize: 20, color: '#7A6458', cursor: 'pointer', lineHeight: 1 }}
             >+</motion.button>
           </div>
         </div>
