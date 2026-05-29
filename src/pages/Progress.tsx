@@ -38,7 +38,7 @@ function getWeekStreak(logs: { date: string }[]): number {
 }
 
 export default function Progress() {
-  const { logs, activityLogs, prefs, deleteLog, deleteActivityLog } = useWorkoutStore()
+  const { logs, activityLogs, plans, prefs, deleteLog, deleteActivityLog } = useWorkoutStore()
   const unit = prefs.unit ?? 'kg'
   const allDates = [...logs.map(l => ({ date: l.date })), ...activityLogs.map(l => ({ date: l.date }))]
   const streak = getWeekStreak(allDates)
@@ -377,36 +377,44 @@ export default function Progress() {
                 </div>
 
                 {/* Exercise list */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-                  {(detailLog.exercises ?? []).map((perf) => {
-                    const ex = allExercises.find((e) => e.id === perf.exerciseId)
-                    if (!ex) return null
-                    const isPR = detailLog.prs?.includes(perf.exerciseId)
-                    return (
-                      <div key={perf.exerciseId} style={{
-                        background: isPR ? '#FFFBEF' : '#fff',
-                        borderRadius: 14, padding: '12px 16px',
-                        display: 'flex', alignItems: 'center', gap: 12,
-                        border: '1px solid ' + (isPR ? 'rgba(255,215,0,0.3)' : 'rgba(196,168,130,0.12)'),
-                      }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{ fontSize: 14, fontWeight: 500, color: '#3A2E28' }}>{ex.name}</span>
-                            {isPR && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 2, background: '#FFF3CD', borderRadius: 5, padding: '1px 5px' }}>
-                                <span style={{ fontSize: 9 }}>⭐</span>
-                                <span style={{ fontSize: 9, fontWeight: 700, color: '#8B6914' }}>PR</span>
+                {(() => {
+                  const loggedPlan = plans.find((p) => p.id === detailLog.planId)
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+                      {(detailLog.exercises ?? []).map((perf) => {
+                        const ex = allExercises.find((e) => e.id === perf.exerciseId)
+                        if (!ex) return null
+                        const isPR = detailLog.prs?.includes(perf.exerciseId)
+                        const planEx = loggedPlan?.exercises.find((e) => e.exerciseId === perf.exerciseId)
+                        const sets = planEx?.sets ?? ex.defaultSets
+                        const reps = planEx?.reps ?? ex.defaultReps
+                        return (
+                          <div key={perf.exerciseId} style={{
+                            background: isPR ? '#FFFBEF' : '#fff',
+                            borderRadius: 14, padding: '12px 16px',
+                            display: 'flex', alignItems: 'center', gap: 12,
+                            border: '1px solid ' + (isPR ? 'rgba(255,215,0,0.3)' : 'rgba(196,168,130,0.12)'),
+                          }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span style={{ fontSize: 14, fontWeight: 500, color: '#3A2E28' }}>{ex.name}</span>
+                                {isPR && (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 2, background: '#FFF3CD', borderRadius: 5, padding: '1px 5px' }}>
+                                    <span style={{ fontSize: 9 }}>⭐</span>
+                                    <span style={{ fontSize: 9, fontWeight: 700, color: '#8B6914' }}>PR</span>
+                                  </div>
+                                )}
                               </div>
-                            )}
+                              <div style={{ fontSize: 12, color: '#C4A882', marginTop: 2 }}>
+                                {sets} sets · {reps} reps · {fmtWeight(perf.weightKg, unit)} {unit}
+                              </div>
+                            </div>
                           </div>
-                          <div style={{ fontSize: 12, color: '#C4A882', marginTop: 2 }}>
-                            {fmtWeight(perf.weightKg, unit)} {unit}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })()}
 
                 <motion.button whileTap={{ scale: 0.96 }} onClick={() => setDetailLog(null)}
                   style={{ width: '100%', background: '#3A2E28', color: '#FAF7F2', border: 'none', borderRadius: 16, padding: '14px', fontSize: 15, fontWeight: 500, cursor: 'pointer', fontFamily: '"DM Sans", system-ui, sans-serif' }}>
