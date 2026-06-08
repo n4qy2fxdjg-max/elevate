@@ -29,6 +29,28 @@ function autoPush(get: () => WorkoutStore) {
     .catch(console.error)
 }
 
+// ── Record-level last-write-wins merge ────────────────────────────────
+// Keep the record with the higher updatedAt; tombstones (deleted) are carried
+// through so a delete wins over a stale copy instead of being resurrected.
+function mergeById<T extends { id: string; updatedAt?: number }>(a: T[], b: T[]): T[] {
+  const map = new Map(a.map((x) => [x.id, x]))
+  for (const x of b) {
+    const cur = map.get(x.id)
+    if (!cur || (x.updatedAt ?? 0) > (cur.updatedAt ?? 0)) map.set(x.id, x)
+  }
+  return Array.from(map.values())
+}
+
+function mergeLogs(a: WorkoutLog[], b: WorkoutLog[]): WorkoutLog[] {
+  return mergeById(a, b).sort((x, y) => y.date.localeCompare(x.date))
+}
+function mergeActivities(a: ActivityLog[], b: ActivityLog[]): ActivityLog[] {
+  return mergeById(a, b).sort((x, y) => y.date.localeCompare(x.date))
+}
+function mergePlans(a: WorkoutPlan[], b: WorkoutPlan[]): WorkoutPlan[] {
+  return mergeById(a, b).sort((x, y) => y.createdAt.localeCompare(x.createdAt))
+}
+
 export const useWorkoutStore = create<WorkoutStore>()(
   persist(
     (set, get) => ({
@@ -39,31 +61,45 @@ export const useWorkoutStore = create<WorkoutStore>()(
       activePlanId: null,
 
       addPlan: (plan) => {
-        set((s) => ({ plans: [...s.plans, plan] }))
+        set((s) => ({ plans: [...s.plans, { ...plan, updatedAt: Date.now() }] }))
         autoPush(get)
       },
       updatePlan: (plan) => {
-        set((s) => ({ plans: s.plans.map((p) => (p.id === plan.id ? plan : p)) }))
+        set((s) => ({
+          plans: s.plans.map((p) => (p.id === plan.id ? { ...plan, updatedAt: Date.now() } : p)),
+        }))
         autoPush(get)
       },
       deletePlan: (id) => {
-        set((s) => ({ plans: s.plans.filter((p) => p.id !== id) }))
+        set((s) => ({
+          plans: s.plans.map((p) =>
+            p.id === id ? { ...p, deleted: true, updatedAt: Date.now() } : p
+          ),
+        }))
         autoPush(get)
       },
       addLog: (log) => {
-        set((s) => ({ logs: [log, ...s.logs] }))
+        set((s) => ({ logs: [{ ...log, updatedAt: Date.now() }, ...s.logs] }))
         autoPush(get)
       },
       deleteLog: (id) => {
-        set((s) => ({ logs: s.logs.filter((l) => l.id !== id) }))
+        set((s) => ({
+          logs: s.logs.map((l) =>
+            l.id === id ? { ...l, deleted: true, updatedAt: Date.now() } : l
+          ),
+        }))
         autoPush(get)
       },
       addActivityLog: (log) => {
-        set((s) => ({ activityLogs: [log, ...s.activityLogs] }))
+        set((s) => ({ activityLogs: [{ ...log, updatedAt: Date.now() }, ...s.activityLogs] }))
         autoPush(get)
       },
       deleteActivityLog: (id) => {
-        set((s) => ({ activityLogs: s.activityLogs.filter((l) => l.id !== id) }))
+        set((s) => ({
+          activityLogs: s.activityLogs.map((l) =>
+            l.id === id ? { ...l, deleted: true, updatedAt: Date.now() } : l
+          ),
+        }))
         autoPush(get)
       },
 
@@ -74,8 +110,12 @@ export const useWorkoutStore = create<WorkoutStore>()(
         const { prefs, setPrefs } = get()
         if (!prefs.syncCode) return
         try {
-          const { logs, plans, activityLogs } = await pullSync(prefs.syncCode)
-          set({ logs, plans, activityLogs: activityLogs ?? [] })
+          const remote = await pullSync(prefs.syncCode)
+          set((s) => ({
+            logs: mergeLogs(s.logs, remote.logs ?? []),
+            plans: mergePlans(s.plans, remote.plans ?? []),
+            activityLogs: mergeActivities(s.activityLogs, remote.activityLogs ?? []),
+          }))
           setPrefs({ lastSynced: new Date().toISOString() })
         } catch (e) {
           console.error('Sync pull failed', e)
@@ -84,7 +124,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
     }),
     {
       name: 'elevate-v1',
-      version: 2,
+      version: 3,
       migrate: (persisted: any, version: number) => {
         let data = persisted
         if (version < 1 && data?.prefs?.name === 'Love') {
@@ -92,6 +132,19 @@ export const useWorkoutStore = create<WorkoutStore>()(
         }
         if (version < 2) {
           data = { ...data, activityLogs: data.activityLogs ?? [] }
+        }
+        if (version < 3) {
+          // Backfill updatedAt so pre-LWW records have a sane ordering / merge weight.
+          const ts = (s?: string) => {
+            const n = s ? Date.parse(s) : NaN
+            return Number.isNaN(n) ? 0 : n
+          }
+          data = {
+            ...data,
+            logs: (data.logs ?? []).map((l: WorkoutLog) => ({ ...l, updatedAt: l.updatedAt ?? ts(l.date) })),
+            plans: (data.plans ?? []).map((p: WorkoutPlan) => ({ ...p, updatedAt: p.updatedAt ?? ts(p.createdAt) })),
+            activityLogs: (data.activityLogs ?? []).map((a: ActivityLog) => ({ ...a, updatedAt: a.updatedAt ?? ts(a.date) })),
+          }
         }
         return data
       },

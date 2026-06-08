@@ -19,5 +19,17 @@
       "database_name": "elevate-db",
       "database_id": "e0bdebcc-db73-49f1-85d8-cbcb8155f660"
     }
-  ]
+  ],
+  "durable_objects": {
+    "bindings": [
+      { "name": "REMINDER", "class_name": "ReminderScheduler" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["ReminderScheduler"] }
+  ],
+  "vars": {
+    "VAPID_PUBLIC": "BECTfAcwoZsiFp5VVZG3wpiUPjZztMv1jmqPD9EECYDphx-RAsAeOUrb6xcHczWGaMINGHrPGDedKtMmT_5JfQs",
+    "VAPID_SUBJECT": "mailto:abdulwahabeak@gmail.com"
+  }
 }

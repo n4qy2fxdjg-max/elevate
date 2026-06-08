@@ -29,6 +29,8 @@ export interface WorkoutPlan {
   name: string
   exercises: WorkoutExercise[]
   createdAt: string
+  updatedAt?: number      // ms epoch — last-write-wins comparator for sync
+  deleted?: boolean       // tombstone — kept so deletions propagate across devices
 }
 
 export interface WorkoutLog {
@@ -40,6 +42,8 @@ export interface WorkoutLog {
   completed: boolean
   exercises?: ExercisePerformance[]
   prs?: string[]          // exerciseIds that set a personal record this session
+  updatedAt?: number      // ms epoch — last-write-wins comparator for sync
+  deleted?: boolean       // tombstone — kept so deletions propagate across devices
 }
 
 export interface UserPrefs {
@@ -56,4 +60,6 @@ export interface ActivityLog {
   durationMin: number
   date: string
   notes?: string
+  updatedAt?: number      // ms epoch — last-write-wins comparator for sync
+  deleted?: boolean       // tombstone — kept so deletions propagate across devices
 }

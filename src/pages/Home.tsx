@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useWorkoutStore } from '../store/useWorkoutStore'
+import { activeLogs, activePlans, activeActivities } from '../lib/active'
+import Sheet from '../components/Sheet'
 import WorkoutCard from '../components/WorkoutCard'
 import { exercises as allExercises, categoryColors } from '../data/exercises'
 import type { WorkoutPlan, ActivityLog } from '../types'
@@ -59,7 +60,10 @@ function getWeekStreak(logs: { date: string }[]): number {
 
 export default function Home() {
   const navigate = useNavigate()
-  const { plans, logs, activityLogs, prefs, setActivePlanId, deletePlan, addActivityLog } = useWorkoutStore()
+  const { plans: rawPlans, logs: rawLogs, activityLogs: rawActivities, prefs, setActivePlanId, deletePlan, addActivityLog } = useWorkoutStore()
+  const plans = activePlans(rawPlans)
+  const logs = activeLogs(rawLogs)
+  const activityLogs = activeActivities(rawActivities)
   const unit = prefs.unit ?? 'kg'
   const allLogs = [...logs.map(l => ({ date: l.date })), ...activityLogs.map(l => ({ date: l.date }))]
   const streak = getWeekStreak(allLogs)
@@ -385,24 +389,9 @@ export default function Home() {
       )}
 
       {/* Plan Detail sheet */}
-      {createPortal(
-        <AnimatePresence>
-          {viewingPlan && (
-            <>
-              <motion.div key="bd" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                onClick={() => setViewingPlan(null)}
-                style={{ position: 'fixed', inset: 0, background: 'rgba(58,46,40,0.4)', zIndex: 1000 }} />
-              <motion.div key="sh" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-                style={{
-                  position: 'fixed', bottom: 0, left: 0, right: 0, margin: '0 auto',
-                  width: '100%', maxWidth: 430, background: '#FAF7F2',
-                  borderRadius: '28px 28px 0 0', padding: '28px 24px',
-                  paddingBottom: 'max(32px, calc(env(safe-area-inset-bottom) + 16px))',
-                  zIndex: 1001, maxHeight: '88svh', overflowY: 'auto', WebkitOverflowScrolling: 'touch',
-                }}
-              >
-                <div style={{ width: 36, height: 4, background: '#E8D8C4', borderRadius: 2, margin: '0 auto 24px' }} />
+      <Sheet open={!!viewingPlan} onClose={() => setViewingPlan(null)}>
+        {viewingPlan && (
+          <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '4px 24px max(24px, env(safe-area-inset-bottom))' }}>
                 <h2 style={{ fontFamily: '"Cormorant Garamond", Georgia, serif', fontSize: 28, fontWeight: 500, color: '#3A2E28', margin: '0 0 4px' }}>
                   {viewingPlan.name}
                 </h2>
@@ -457,43 +446,14 @@ export default function Home() {
                     Delete Plan
                   </motion.button>
                 )}
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
+          </div>
+        )}
+      </Sheet>
 
       {/* Log Session sheet */}
-      {createPortal(
-        <AnimatePresence>
-          {logOpen && (
-            <>
-              <motion.div
-                key="backdrop"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setLogOpen(false)}
-                style={{ position: 'fixed', inset: 0, background: 'rgba(58,46,40,0.4)', zIndex: 1000 }}
-              />
-              <motion.div
-                key="sheet"
-                initial={{ y: '100%' }}
-                animate={{ y: 0 }}
-                exit={{ y: '100%' }}
-                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-                style={{
-                  position: 'fixed', bottom: 0, left: 0, right: 0,
-                  margin: '0 auto', width: '100%', maxWidth: 430,
-                  background: '#FAF7F2', borderRadius: '28px 28px 0 0',
-                  padding: '28px 24px',
-                  paddingBottom: 'max(32px, calc(env(safe-area-inset-bottom) + 16px))',
-                  zIndex: 1001, maxHeight: '90svh', overflowY: 'auto',
-                  WebkitOverflowScrolling: 'touch',
-                }}
-              >
-                <div style={{ width: 36, height: 4, background: '#E8D8C4', borderRadius: 2, margin: '0 auto 24px' }} />
+      <Sheet open={logOpen} onClose={() => setLogOpen(false)}>
+        {logOpen && (
+          <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '4px 24px max(24px, env(safe-area-inset-bottom))' }}>
                 <h2 style={{ fontFamily: '"Cormorant Garamond", Georgia, serif', fontSize: 28, fontWeight: 500, color: '#3A2E28', margin: '0 0 20px', lineHeight: 1.1 }}>
                   Log a session
                 </h2>
@@ -585,12 +545,9 @@ export default function Home() {
                 >
                   Log Session
                 </motion.button>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
+          </div>
+        )}
+      </Sheet>
     </div>
   )
 }

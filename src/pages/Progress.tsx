@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useWorkoutStore } from '../store/useWorkoutStore'
+import { activeLogs, activePlans, activeActivities } from '../lib/active'
+import Sheet from '../components/Sheet'
 import type { ActivityLog, WorkoutLog } from '../types'
 import { fmtWeight } from '../lib/units'
 import { exercises as allExercises } from '../data/exercises'
@@ -38,7 +39,10 @@ function getWeekStreak(logs: { date: string }[]): number {
 }
 
 export default function Progress() {
-  const { logs, activityLogs, plans, prefs, deleteLog, deleteActivityLog } = useWorkoutStore()
+  const { logs: rawLogs, activityLogs: rawActivities, plans: rawPlans, prefs, deleteLog, deleteActivityLog } = useWorkoutStore()
+  const logs = activeLogs(rawLogs)
+  const activityLogs = activeActivities(rawActivities)
+  const plans = activePlans(rawPlans)
   const unit = prefs.unit ?? 'kg'
   const allDates = [...logs.map(l => ({ date: l.date })), ...activityLogs.map(l => ({ date: l.date }))]
   const streak = getWeekStreak(allDates)
@@ -343,25 +347,9 @@ export default function Progress() {
       )}
 
       {/* Workout Detail Sheet */}
-      {createPortal(
-        <AnimatePresence>
-          {detailLog && (
-            <>
-              <motion.div key="bd" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                onClick={() => setDetailLog(null)}
-                style={{ position: 'fixed', inset: 0, background: 'rgba(58,46,40,0.4)', zIndex: 1000 }} />
-              <motion.div key="sh" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-                style={{
-                  position: 'fixed', bottom: 0, left: 0, right: 0, margin: '0 auto',
-                  width: '100%', maxWidth: 430, background: '#FAF7F2',
-                  borderRadius: '28px 28px 0 0', padding: '28px 24px',
-                  paddingBottom: 'max(32px, calc(env(safe-area-inset-bottom) + 16px))',
-                  zIndex: 1001, maxHeight: '88svh', overflowY: 'auto', WebkitOverflowScrolling: 'touch',
-                }}
-              >
-                <div style={{ width: 36, height: 4, background: '#E8D8C4', borderRadius: 2, margin: '0 auto 24px' }} />
-
+      <Sheet open={!!detailLog} onClose={() => setDetailLog(null)}>
+        {detailLog && (
+          <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '4px 24px max(24px, env(safe-area-inset-bottom))' }}>
                 {/* Header */}
                 <div style={{ marginBottom: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
@@ -425,12 +413,9 @@ export default function Progress() {
                   style={{ width: '100%', background: '#3A2E28', color: '#FAF7F2', border: 'none', borderRadius: 16, padding: '14px', fontSize: 15, fontWeight: 500, cursor: 'pointer', fontFamily: '"DM Sans", system-ui, sans-serif' }}>
                   Close
                 </motion.button>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
+          </div>
+        )}
+      </Sheet>
     </div>
   )
 }

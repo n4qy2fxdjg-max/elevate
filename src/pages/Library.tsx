@@ -5,6 +5,7 @@ import { exercises, categoryColors } from '../data/exercises'
 import { BODY_GROUPS, GROUP_CATS, type BodyGroup } from '../data/categories'
 import ExerciseCard from '../components/ExerciseCard'
 import { useWorkoutStore } from '../store/useWorkoutStore'
+import { activeLogs } from '../lib/active'
 import type { Exercise, MuscleCategory } from '../types'
 import { fmtWeight } from '../lib/units'
 
@@ -76,7 +77,8 @@ function OverloadChart({ data, unit }: { data: ChartPoint[]; unit: 'kg' | 'lb' }
 }
 
 export default function Library() {
-  const { logs, prefs } = useWorkoutStore()
+  const { logs: rawLogs, prefs } = useWorkoutStore()
+  const logs = activeLogs(rawLogs)
   const unit = prefs.unit ?? 'kg'
   const [bodyGroup, setBodyGroup] = useState<BodyGroup>('all')
   const [active, setActive] = useState<MuscleCategory | 'all'>('all')

@@ -6,10 +6,12 @@ import Builder from './pages/Builder'
 import ActiveWorkout from './pages/ActiveWorkout'
 import Progress from './pages/Progress'
 import Settings from './pages/Settings'
+import UpdatePrompt from './components/UpdatePrompt'
 
 export default function App() {
   return (
     <BrowserRouter>
+      <UpdatePrompt />
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<Home />} />

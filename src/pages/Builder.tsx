@@ -6,6 +6,7 @@ import { nanoid } from 'nanoid'
 import { exercises as allExercises, categoryColors } from '../data/exercises'
 import { BODY_GROUPS, GROUP_CATS, type BodyGroup } from '../data/categories'
 import { useWorkoutStore } from '../store/useWorkoutStore'
+import { activePlans } from '../lib/active'
 import type { MuscleCategory } from '../types'
 import { fmtWeight, weightStep, KG_TO_LB } from '../lib/units'
 
@@ -21,7 +22,8 @@ export default function Builder() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const editPlanId = searchParams.get('edit')
-  const { plans, addPlan, updatePlan, prefs } = useWorkoutStore()
+  const { plans: rawPlans, addPlan, updatePlan, prefs } = useWorkoutStore()
+  const plans = activePlans(rawPlans)
   const unit = prefs.unit ?? 'kg'
 
   // Pre-populate when editing an existing plan

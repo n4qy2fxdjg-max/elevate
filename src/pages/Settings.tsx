@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useWorkoutStore } from '../store/useWorkoutStore'
+import { activeLogs, activePlans } from '../lib/active'
 import { createSyncCode, verifySyncCode, pushSync } from '../lib/syncApi'
 import { fmtWeight, weightStep, KG_TO_LB } from '../lib/units'
 
@@ -8,6 +9,9 @@ type SyncView = 'idle' | 'creating' | 'joining' | 'active'
 
 export default function Settings() {
   const { prefs, logs, plans, setPrefs, syncPull } = useWorkoutStore()
+  // active-only views for display counts (raw arrays carry tombstones for sync)
+  const visibleLogs = activeLogs(logs)
+  const visiblePlans = activePlans(plans)
 
   // Sync state
   const [syncView, setSyncView] = useState<SyncView>(prefs.syncCode ? 'active' : 'idle')
@@ -412,8 +416,8 @@ export default function Settings() {
       {/* Stats */}
       <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
         {[
-          { label: 'Workouts', value: logs.length },
-          { label: 'Plans', value: plans.length },
+          { label: 'Workouts', value: visibleLogs.length },
+          { label: 'Plans', value: visiblePlans.length },
         ].map((s) => (
           <div
             key={s.label}

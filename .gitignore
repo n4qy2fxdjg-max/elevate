@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# VAPID web-push private key (set as the VAPID_PRIVATE_JWK Worker secret, never commit)
+.vapid_private.jwk.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
